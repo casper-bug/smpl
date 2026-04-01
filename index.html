@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>smpl. — 70 Browser Tools</title>
 <meta name="description" content="70 free browser tools for PDF, image, text, and developer tasks. No uploads, everything runs locally in your browser.">
-<meta name="google-adsense-account" content="ca-pub-8998121531521723">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
@@ -2719,9 +2718,7 @@ function renderGrid(tools) {
   }
   grid.style.display = '';
   noRes.style.display = 'none';
-  let count = 0;
   tools.forEach(tool => {
-    count++;
     const card = document.createElement('div');
     card.className = 'smpl-card';
     card.onclick = () => openTool(tool.id);
