@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>smpl. — 70 Browser Tools</title>
+<title>smpl. — 70+ Browser Tools</title>
 <meta name="description" content="70 free browser tools for PDF, image, text, and developer tasks. No uploads, everything runs locally in your browser.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,8 +37,10 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#000;transition:backgr
 .dark .smpl-textarea{border-color:#262626}
 .smpl-textarea:focus{border-color:#000}
 .dark .smpl-textarea:focus{border-color:#fff}
-.smpl-select{border:1px solid #F3F4F6;padding:9px 12px;background:transparent;outline:none;color:inherit;font-family:'Inter',sans-serif;cursor:pointer}
-.dark .smpl-select{border-color:#262626;background:#0A0A0A;color:#fff}
+.smpl-select{-webkit-appearance:none;appearance:none;border:1px solid #F3F4F6;padding:9px 36px 9px 12px;background-color:transparent;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23000' stroke-width='1.5' fill='none' stroke-linecap='square'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;outline:none;color:inherit;font-family:'Inter',sans-serif;font-size:13px;cursor:pointer;transition:border-color 0.3s ease;width:100%;min-width:0}
+.smpl-select:focus{border-color:#000}
+.dark .smpl-select{border-color:#262626;background-color:#0A0A0A;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23fff' stroke-width='1.5' fill='none' stroke-linecap='square'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;color:#fff}
+.dark .smpl-select:focus{border-color:#fff}
 #masterGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1px;background:#F3F4F6}
 .dark #masterGrid{background:#262626}
 .section{display:none}
@@ -108,7 +110,7 @@ pre{white-space:pre-wrap;word-break:break-all}
 <!-- HOME SECTION -->
 <section id="home" class="section active py-16">
   <div class="mb-12">
-    <h1 class="text-4xl font-bold mono mb-3">70 tools.<br><span class="opacity-40">No uploads. No data.</span></h1>
+    <h1 class="text-4xl font-bold mono mb-3">70+ tools.<br><span class="opacity-40">No uploads. No data.</span></h1>
     <p class="text-sm opacity-50 max-w-md leading-relaxed">Every tool runs entirely in your browser. Your files never leave your device.</p>
   </div>
   <div class="mb-8">
@@ -133,7 +135,7 @@ pre{white-space:pre-wrap;word-break:break-all}
 <section id="about" class="section py-16 max-w-2xl">
   <h1 class="text-3xl font-bold mono mb-8">Method.</h1>
   <div class="space-y-6 text-sm leading-relaxed opacity-70">
-    <p>smpl. is a collection of 70 browser-based tools for working with PDFs, images, text, and code. Every tool runs entirely client-side — no servers, no uploads, no accounts.</p>
+    <p>smpl. is a collection of 70+ browser-based tools for working with PDFs, images, text, and code. Every tool runs entirely client-side — no servers, no uploads, no accounts.</p>
     <p>The design philosophy is radical simplicity. Each tool does one thing. The interface gets out of the way.</p>
     <p>Built with vanilla JavaScript, Tailwind CSS, pdf-lib for PDF operations, and the Canvas API for image manipulation.</p>
     <p>Performance is intentional. Files are processed using Web APIs: File API, Canvas 2D, WebCrypto, MediaRecorder. Nothing is sent anywhere.</p>
@@ -172,7 +174,7 @@ pre{white-space:pre-wrap;word-break:break-all}
   <div class="border-t border-[#F3F4F6] dark:border-[#262626] pt-6">
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs opacity-30">
       <span class="mono">smpl. v1.0.0</span>
-      <span>70 tools. All local. All free.</span>
+      <span>70+ tools. All local. All free.</span>
       <span>No cookies. No tracking. No uploads.</span>
     </div>
   </div>
@@ -1203,8 +1205,10 @@ function genQR() {
   } catch(e) { showMsg('qrMsg','QR Error: '+e.message,true); }
 }
 function dlQR() {
+  const canvas = document.querySelector('#qrOutput canvas');
+  if (canvas) { canvas.toBlob(blob => download(blob,'qrcode.png'),'image/png'); return; }
   const img = document.querySelector('#qrOutput img');
-  if (img) { const a=document.createElement('a'); a.href=img.src; a.download='qrcode.png'; a.click(); }
+  if (img && img.src) fetch(img.src).then(r=>r.blob()).then(b=>download(b,'qrcode.png'));
 }
 
 function genPass() {
@@ -1236,8 +1240,10 @@ function genWifiQR() {
   } catch(e) { showMsg('wifiMsg','QR Error: '+e.message,true); }
 }
 function dlWifiQR() {
+  const canvas = document.querySelector('#wifiQrOutput canvas');
+  if (canvas) { canvas.toBlob(blob => download(blob,'wifi_qr.png'),'image/png'); return; }
   const img = document.querySelector('#wifiQrOutput img');
-  if (img) { const a=document.createElement('a'); a.href=img.src; a.download='wifi_qr.png'; a.click(); }
+  if (img && img.src) fetch(img.src).then(r=>r.blob()).then(b=>download(b,'wifi_qr.png'));
 }
 
 function fixJson() {
@@ -1737,15 +1743,51 @@ function convertUnit() {
     : 'Conversion not available';
 }
 
+function checkAudioCompat() {
+  const el = document.getElementById('audioCompat');
+  if (!el) return;
+  const ok = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== 'undefined';
+  const secure = location.protocol === 'https:' || location.hostname === 'localhost';
+  const startBtn = document.getElementById('audioStartBtn');
+  if (!ok) {
+    el.textContent = '⚠ Not supported in this browser. Use Chrome, Edge, or Firefox on desktop.';
+    el.style.color = '#ef4444'; if (startBtn) startBtn.disabled = true;
+  } else if (!secure) {
+    el.textContent = '⚠ Requires HTTPS. Microphone access is not available on insecure pages.';
+    el.style.color = '#ef4444'; if (startBtn) startBtn.disabled = true;
+  } else {
+    el.textContent = '✓ Compatible — microphone permission will be requested on Start.';
+    el.style.color = ''; el.style.opacity = '0.5';
+  }
+}
+function checkVideoCompat() {
+  const el = document.getElementById('videoCompat');
+  if (!el) return;
+  const ok = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) && typeof MediaRecorder !== 'undefined';
+  const secure = location.protocol === 'https:' || location.hostname === 'localhost';
+  const startBtn = document.getElementById('videoStartBtn');
+  if (!ok) {
+    el.textContent = '⚠ Not supported. Screen capture requires Chrome, Edge, or Firefox on desktop.';
+    el.style.color = '#ef4444'; if (startBtn) startBtn.disabled = true;
+  } else if (!secure) {
+    el.textContent = '⚠ Requires HTTPS. Screen capture is not available on insecure pages.';
+    el.style.color = '#ef4444'; if (startBtn) startBtn.disabled = true;
+  } else {
+    el.textContent = '✓ Compatible — you will choose a window or tab to capture.';
+    el.style.color = ''; el.style.opacity = '0.5';
+  }
+}
+
 let audioRecorder=null, audioChunks=[], audioTimer=null, audioSecs=0;
 async function startAudioRec() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({audio:true});
     audioChunks = [];
-    audioRecorder = new MediaRecorder(stream);
+    const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/ogg'].find(t=>MediaRecorder.isTypeSupported(t)) || '';
+    audioRecorder = new MediaRecorder(stream, mimeType ? {mimeType} : {});
     audioRecorder.ondataavailable = e => audioChunks.push(e.data);
     audioRecorder.onstop = () => {
-      const blob = new Blob(audioChunks, {type:'audio/webm'});
+      const blob = new Blob(audioChunks, {type: audioRecorder.mimeType || 'audio/webm'});
       const url = URL.createObjectURL(blob);
       document.getElementById('audioPlayback').src = url;
       document.getElementById('audioPlayback').style.display = 'block';
@@ -1777,7 +1819,8 @@ async function startVideoRec() {
   try {
     const stream = await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});
     videoChunks = [];
-    videoRecorder = new MediaRecorder(stream);
+    const vMime = ['video/webm;codecs=vp9','video/webm'].find(t=>MediaRecorder.isTypeSupported(t)) || '';
+    videoRecorder = new MediaRecorder(stream, vMime ? {mimeType:vMime} : {});
     videoRecorder.ondataavailable = e => videoChunks.push(e.data);
     videoRecorder.onstop = () => {
       const blob = new Blob(videoChunks, {type:'video/webm'});
@@ -1920,7 +1963,7 @@ ${fileDrop('rotateInput','.pdf',false,'','mb-4')}
 {id:'delete.pdf',name:'Delete Pages',cat:'PDF',tagline:'Remove specific pages from a PDF',desc:'Enter the page numbers you want to remove, separated by commas. Supports ranges like "2-5".',
 render:()=>`
 <label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
-<input type="file" id="deleteInput" accept=".pdf" class="block text-sm mb-4 w-full">
+${fileDrop('deleteInput','.pdf',false,'','mb-4')}
 <label class="text-xs opacity-50 block mb-1">Pages to delete (e.g. 1,3,5-8)</label>
 <input type="text" id="deletePages" placeholder="1,3,5-8" class="smpl-input text-sm mb-6">
 <button class="smpl-btn" onclick="pdfDelete()">Delete Pages</button>
@@ -1929,14 +1972,14 @@ render:()=>`
 {id:'gray.pdf',name:'Grayscale PDF',cat:'PDF',tagline:'Strip colour metadata from a PDF document',desc:'Removes color metadata and marks the document as grayscale. Note: true pixel-level conversion requires PDF.js rendering which is not available in this browser tool.',
 render:()=>`
 <label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
-<input type="file" id="grayPdfInput" accept=".pdf" class="block text-sm mb-6 w-full">
+${fileDrop('grayPdfInput','.pdf',false,'','mb-6')}
 <button class="smpl-btn" onclick="pdfGray()">Strip Colour Metadata</button>
 <div id="grayPdfMsg" class="text-xs mt-3 max-w-lg leading-relaxed" style="display:none"></div>`},
 
 {id:'lock.pdf',name:'Lock PDF',cat:'PDF',tagline:'Add password protection to a PDF',desc:'Password-protect your PDF. Note: full encryption support requires a server-side tool; this version clears metadata and saves with a lock marker.',
 render:()=>`
 <label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
-<input type="file" id="lockInput" accept=".pdf" class="block text-sm mb-4 w-full">
+${fileDrop('lockInput','.pdf',false,'','mb-4')}
 <div class="flex gap-4 mb-6 flex-wrap">
   <div class="flex-1 min-w-40">
     <label class="text-xs opacity-50 block mb-1">User Password</label>
@@ -1953,7 +1996,7 @@ render:()=>`
 {id:'unlock.pdf',name:'Unlock PDF',cat:'PDF',tagline:'Remove password from an encrypted PDF',desc:'Remove encryption from a password-protected PDF. You need the existing password to unlock it.',
 render:()=>`
 <label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
-<input type="file" id="unlockInput" accept=".pdf" class="block text-sm mb-4 w-full">
+${fileDrop('unlockInput','.pdf',false,'','mb-4')}
 <label class="text-xs opacity-50 block mb-1">Password</label>
 <input type="password" id="unlockPass" class="smpl-input text-sm mb-6" placeholder="PDF password">
 <button class="smpl-btn" onclick="pdfUnlock()">Unlock PDF</button>
@@ -1962,21 +2005,21 @@ render:()=>`
 {id:'jpg.pdf',name:'Images → PDF',cat:'PDF',tagline:'Convert JPG/PNG images into a single PDF',desc:'Select one or more JPG or PNG images to combine them into a PDF document. Each image becomes its own page.',
 render:()=>`
 <label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image Files (JPG/PNG)</label>
-<input type="file" id="jpgInput" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple class="block text-sm mb-6 w-full">
+${fileDrop('jpgInput','.jpg,.jpeg,.png,image/jpeg,image/png',true,'','mb-6')}
 <button class="smpl-btn" onclick="jpgToPdf()">Create PDF</button>
 <div id="jpgMsg" class="text-xs mt-3" style="display:none"></div>`},
 
 {id:'slim.pdf',name:'Slim PDF',cat:'PDF',tagline:'Reduce PDF size by removing metadata and unused objects',desc:'Removes all metadata (title, author, subject, keywords, creator, producer) and re-saves the PDF with object stream compression.',
 render:()=>`
 <label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
-<input type="file" id="slimInput" accept=".pdf" class="block text-sm mb-6 w-full">
+${fileDrop('slimInput','.pdf',false,'','mb-6')}
 <button class="smpl-btn" onclick="pdfSlim()">Slim PDF</button>
 <div id="slimMsg" class="text-xs mt-3" style="display:none"></div>`},
 
 {id:'meta.pdf',name:'PDF Metadata',cat:'PDF',tagline:'View and edit PDF document metadata',desc:'Load a PDF to view its current metadata, then edit and save the updated metadata back.',
 render:()=>`
 <label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
-<input type="file" id="metaInput" accept=".pdf" class="block text-sm mb-4 w-full" onchange="pdfMetaLoad()">
+${fileDrop('metaInput','.pdf',false,'pdfMetaLoad()','mb-4')}
 <div class="space-y-4 mb-6">
   <div><label class="text-xs opacity-50 block mb-1">Title</label><input type="text" id="metaTitle" class="smpl-input text-sm"></div>
   <div><label class="text-xs opacity-50 block mb-1">Author</label><input type="text" id="metaAuthor" class="smpl-input text-sm"></div>
@@ -1990,7 +2033,7 @@ render:()=>`
 {id:'mark.pdf',name:'Watermark PDF',cat:'PDF',tagline:'Add a diagonal text watermark to every page',desc:'Add a semi-transparent text watermark diagonally across each page of your PDF.',
 render:()=>`
 <label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
-<input type="file" id="markInput" accept=".pdf" class="block text-sm mb-4 w-full">
+${fileDrop('markInput','.pdf',false,'','mb-4')}
 <div class="space-y-4 mb-6">
   <div><label class="text-xs opacity-50 block mb-1">Watermark Text</label><input type="text" id="markText" value="CONFIDENTIAL" class="smpl-input text-sm"></div>
   <div class="flex gap-6 flex-wrap">
@@ -2010,7 +2053,7 @@ render:()=>`
 {id:'extract.pdf',name:'Extract Text',cat:'PDF',tagline:'Extract form fields and metadata from a PDF',desc:'Extracts form field values and document metadata. Full text extraction requires PDF.js (not included). Form fields from interactive PDFs are supported.',
 render:()=>`
 <label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
-<input type="file" id="extractInput" accept=".pdf" class="block text-sm mb-4 w-full">
+${fileDrop('extractInput','.pdf',false,'','mb-4')}
 <button class="smpl-btn mb-4" onclick="pdfExtract()">Extract</button>
 <div id="extractMsg" class="text-xs mb-2" style="display:none"></div>
 <textarea id="extractOutput" class="smpl-textarea" style="min-height:200px" readonly placeholder="Extracted content will appear here…"></textarea>`},
@@ -2018,15 +2061,15 @@ render:()=>`
 {id:'flat.pdf',name:'Flatten PDF',cat:'PDF',tagline:'Flatten interactive form fields into static content',desc:'Merges all form fields, annotations, and interactive elements into the static page content, preventing further editing.',
 render:()=>`
 <label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
-<input type="file" id="flatInput" accept=".pdf" class="block text-sm mb-6 w-full">
+${fileDrop('flatInput','.pdf',false,'','mb-6')}
 <button class="smpl-btn" onclick="pdfFlat()">Flatten Form Fields</button>
 <div id="flatMsg" class="text-xs mt-3" style="display:none"></div>`},
 
 {id:'sign.pdf',name:'Sign PDF',cat:'PDF',tagline:'Overlay a signature image onto a PDF page',desc:'Place a PNG or JPG signature image at a specific position on a page of your PDF.',
 render:()=>`
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-  <div><label class="text-xs opacity-50 block mb-1">PDF File</label><input type="file" id="signPdfInput" accept=".pdf" class="block text-sm w-full"></div>
-  <div><label class="text-xs opacity-50 block mb-1">Signature Image (PNG/JPG)</label><input type="file" id="signImgInput" accept=".png,.jpg,.jpeg,image/*" class="block text-sm w-full"></div>
+  <div><label class="text-xs opacity-50 block mb-1">PDF File</label>${fileDrop('signPdfInput','.pdf',false,'','')}</div>
+  <div><label class="text-xs opacity-50 block mb-1">Signature Image (PNG/JPG)</label>${fileDrop('signImgInput','.png,.jpg,.jpeg,image/*',false,'','')}</div>
 </div>
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div><label class="text-xs opacity-50 block mb-1">Page</label><input type="number" id="signPage" value="1" min="1" class="smpl-input text-sm"></div>
@@ -2039,8 +2082,7 @@ render:()=>`
 
 {id:'crop.pdf',name:'Crop PDF',cat:'PDF',tagline:'Set crop box margins on every page',desc:'Trim the visible area of all pages by specifying margins (in points, 1pt = 1/72 inch).',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
-<input type="file" id="cropPdfInput" accept=".pdf" class="block text-sm mb-4 w-full">
+${fileDrop('cropPdfInput','.pdf',false,'','mb-4')}
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div><label class="text-xs opacity-50 block mb-1">Top (pts)</label><input type="number" id="cropTop" value="0" min="0" class="smpl-input text-sm"></div>
   <div><label class="text-xs opacity-50 block mb-1">Right (pts)</label><input type="number" id="cropRight" value="0" min="0" class="smpl-input text-sm"></div>
@@ -2052,8 +2094,7 @@ render:()=>`
 
 {id:'inv.pdf',name:'Invert PDF',cat:'PDF',tagline:'Note: use your PDF viewer\'s dark mode instead',desc:'True colour inversion requires PDF.js rendering. This tool saves the PDF with an invert request marker and explains how to use your viewer\'s built-in accessibility features.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
-<input type="file" id="invPdfInput" accept=".pdf" class="block text-sm mb-4 w-full">
+${fileDrop('invPdfInput','.pdf',false,'','mb-4')}
 <div class="border border-[#F3F4F6] dark:border-[#262626] p-4 mb-6 text-sm opacity-60 leading-relaxed">
   <strong class="opacity-100">⚠ Limitation</strong><br>
   True colour inversion (like dark mode) requires rendering each page as pixels, which needs PDF.js.<br><br>
@@ -2067,8 +2108,7 @@ render:()=>`
 
 {id:'zip.pdf',name:'Zip PDFs',cat:'PDF',tagline:'Bundle multiple PDFs into a single ZIP archive',desc:'Select multiple PDF files and pack them into a ZIP archive for easy sharing.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF Files</label>
-<input type="file" id="zipPdfInput" accept=".pdf" multiple class="block text-sm mb-4 w-full">
+${fileDrop('zipPdfInput','.pdf',true,'','mb-4')}
 <label class="text-xs opacity-50 block mb-1">ZIP Filename</label>
 <input type="text" id="zipPdfName" value="pdfs.zip" class="smpl-input text-sm mb-6">
 <button class="smpl-btn" onclick="pdfZip()">Create ZIP</button>
@@ -2076,16 +2116,14 @@ render:()=>`
 
 {id:'order.pdf',name:'Reorder Pages',cat:'PDF',tagline:'Drag and drop pages to reorder them',desc:'Load a PDF, then drag the page cards to rearrange them. Click Save to download the reordered PDF.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
-<input type="file" id="orderInput" accept=".pdf" class="block text-sm mb-4 w-full" onchange="pdfOrderLoad()">
+${fileDrop('orderInput','.pdf',false,'pdfOrderLoad()','mb-4')}
 <div id="orderMsg" class="text-xs mb-4" style="display:none"></div>
 <div id="orderList" class="mb-6"></div>
 <button id="orderSaveBtn" class="smpl-btn" onclick="pdfOrderSave()" style="display:none">Save Reordered PDF</button>`},
 
 {id:'book.pdf',name:'Booklet PDF',cat:'PDF',tagline:'Reorder pages for saddle-stitch booklet printing',desc:'Reorders PDF pages into booklet imposition order so you can print double-sided and fold to make a booklet.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
-<input type="file" id="bookInput" accept=".pdf" class="block text-sm mb-4 w-full">
+${fileDrop('bookInput','.pdf',false,'','mb-4')}
 <div class="border border-[#F3F4F6] dark:border-[#262626] p-4 mb-6 text-sm opacity-60 leading-relaxed">
   <strong class="opacity-100">How it works:</strong><br>
   Pages are reordered so you can print double-sided, then fold and staple in the middle. 
@@ -2098,8 +2136,7 @@ render:()=>`
 // ---- Image ----
 {id:'resize.img',name:'Resize Image',cat:'Image',tagline:'Resize any image to exact pixel dimensions',desc:'Resize images using the Canvas API. Enable aspect lock to maintain proportions.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
-<input type="file" id="resizeInput" accept="image/*" class="block text-sm mb-4 w-full" onchange="imgResizePreview()">
+${fileDrop('resizeInput','image/*',false,'imgResizePreview()','mb-4')}
 <div id="resizeInfo" class="text-xs opacity-50 mb-4"></div>
 <div class="flex gap-4 mb-4 flex-wrap">
   <div class="flex-1 min-w-32">
@@ -2119,8 +2156,7 @@ render:()=>`
 
 {id:'crop.img',name:'Crop Image',cat:'Image',tagline:'Crop a rectangular area from an image',desc:'Specify crop origin (x,y) and dimensions to extract a rectangular region from your image.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
-<input type="file" id="cropImgInput" accept="image/*" class="block text-sm mb-3 w-full" onchange="imgCropPreview()">
+${fileDrop('cropImgInput','image/*',false,'imgCropPreview()','mb-4')}
 <div id="cropImgInfo" class="text-xs opacity-50 mb-4"></div>
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div><label class="text-xs opacity-50 block mb-1">X (px)</label><input type="number" id="cropX" value="0" min="0" class="smpl-input text-sm"></div>
@@ -2133,43 +2169,37 @@ render:()=>`
 
 {id:'strip.img',name:'Strip EXIF',cat:'Image',tagline:'Remove metadata and EXIF data from an image',desc:'Re-exports your image through the Canvas API, which strips all EXIF/metadata. Output is a clean PNG.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
-<input type="file" id="stripInput" accept="image/*" class="block text-sm mb-6 w-full">
+${fileDrop('stripInput','image/*',false,'','mb-6')}
 <button class="smpl-btn" onclick="imgStrip()">Strip &amp; Download</button>
 <div id="stripMsg" class="text-xs mt-3" style="display:none"></div>`},
 
 {id:'grid.img',name:'Grid Split',cat:'Image',tagline:'Split an image into a 3×3 grid of 9 cells',desc:'Crops the image to a square then divides it into 9 equal cells. Useful for Instagram grid posts. Downloaded as a ZIP.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
-<input type="file" id="gridInput" accept="image/*" class="block text-sm mb-6 w-full">
+${fileDrop('gridInput','image/*',false,'','mb-6')}
 <button class="smpl-btn" onclick="imgGrid()">Split into 3×3 Grid</button>
 <div id="gridMsg" class="text-xs mt-3" style="display:none"></div>`},
 
 {id:'circle.img',name:'Circle Crop',cat:'Image',tagline:'Crop an image to a perfect circle',desc:'Centers and crops your image to a circle. The output is a square PNG with transparent corners.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
-<input type="file" id="circleInput" accept="image/*" class="block text-sm mb-6 w-full">
+${fileDrop('circleInput','image/*',false,'','mb-6')}
 <button class="smpl-btn" onclick="imgCircle()">Circle Crop &amp; Download</button>
 <div id="circleMsg" class="text-xs mt-3" style="display:none"></div>`},
 
 {id:'gray.img',name:'Greyscale',cat:'Image',tagline:'Convert an image to greyscale',desc:'Converts each pixel using luminance weights (0.299R + 0.587G + 0.114B). Output is a PNG.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
-<input type="file" id="grayImgInput" accept="image/*" class="block text-sm mb-6 w-full">
+${fileDrop('grayImgInput','image/*',false,'','mb-6')}
 <button class="smpl-btn" onclick="imgGray()">Convert to Greyscale</button>
 <div id="grayImgMsg" class="text-xs mt-3" style="display:none"></div>`},
 
 {id:'color.img',name:'Colour Palette',cat:'Image',tagline:'Extract dominant colours from an image',desc:'Samples pixels and groups them into colour buckets to find the most dominant colours. Shows top 6 with hex codes and percentages.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
-<input type="file" id="colorInput" accept="image/*" class="block text-sm mb-4 w-full" onchange="imgColor()">
+${fileDrop('colorInput','image/*',false,'imgColor()','mb-4')}
 <div id="colorMsg" class="text-xs mb-2" style="display:none"></div>
 <div id="colorOutput" class="mt-2"></div>`},
 
 {id:'base64.img',name:'Image → Base64',cat:'Image',tagline:'Convert an image to a Base64 data URI',desc:'Reads your image and outputs the full data URI (suitable for embedding in HTML/CSS) and the raw Base64 string.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
-<input type="file" id="base64ImgInput" accept="image/*" class="block text-sm mb-4 w-full" onchange="imgBase64()">
+${fileDrop('base64ImgInput','image/*',false,'imgBase64()','mb-4')}
 <div id="base64ImgMsg" class="text-xs mb-3" style="display:none"></div>
 <div class="space-y-4">
   <div>
@@ -2190,15 +2220,13 @@ render:()=>`
 
 {id:'fav.img',name:'Favicon Generator',cat:'Image',tagline:'Generate favicon PNGs in 16, 32, 48, 180px',desc:'Creates multiple favicon sizes from your image: 16×16, 32×32, 48×48, and 180×180 (Apple touch icon). Downloaded as a ZIP.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File (square recommended)</label>
-<input type="file" id="favInput" accept="image/*" class="block text-sm mb-6 w-full">
+${fileDrop('favInput','image/*',false,'','mb-6')}
 <button class="smpl-btn" onclick="imgFav()">Generate Favicons</button>
 <div id="favMsg" class="text-xs mt-3" style="display:none"></div>`},
 
 {id:'webp.img',name:'Convert to WebP',cat:'Image',tagline:'Convert images to the WebP format',desc:'Converts any browser-supported image to WebP using the Canvas API. Adjust quality (0–1) before converting.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
-<input type="file" id="webpInput" accept="image/*" class="block text-sm mb-4 w-full">
+${fileDrop('webpInput','image/*',false,'','mb-4')}
 <label class="text-xs opacity-50 block mb-1">Quality: <span id="webpQVal">0.85</span></label>
 <input type="range" id="webpQuality" min="0.1" max="1" step="0.05" value="0.85" class="mb-6 w-full max-w-xs" oninput="document.getElementById('webpQVal').textContent=this.value">
 <button class="smpl-btn" onclick="imgWebp()">Convert to WebP</button>
@@ -2206,8 +2234,7 @@ render:()=>`
 
 {id:'blur.img',name:'Blur Image',cat:'Image',tagline:'Apply a Gaussian blur to an image',desc:'Uses the CSS filter blur on a Canvas element. Adjust the blur radius for stronger or subtler effects.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
-<input type="file" id="blurInput" accept="image/*" class="block text-sm mb-4 w-full">
+${fileDrop('blurInput','image/*',false,'','mb-4')}
 <label class="text-xs opacity-50 block mb-1">Blur Radius: <span id="blurRadVal">5</span>px</label>
 <input type="range" id="blurRadius" min="1" max="50" value="5" class="mb-6 w-full max-w-xs" oninput="document.getElementById('blurRadVal').textContent=this.value">
 <button class="smpl-btn" onclick="imgBlur()">Blur &amp; Download</button>
@@ -2215,15 +2242,13 @@ render:()=>`
 
 {id:'inv.img',name:'Invert Colours',cat:'Image',tagline:'Invert pixel colours to create a negative',desc:'Inverts all RGB pixel values (255 - value) to create a colour-negative effect. Output is a PNG.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
-<input type="file" id="invImgInput" accept="image/*" class="block text-sm mb-6 w-full">
+${fileDrop('invImgInput','image/*',false,'','mb-6')}
 <button class="smpl-btn" onclick="imgInvert()">Invert &amp; Download</button>
 <div id="invImgMsg" class="text-xs mt-3" style="display:none"></div>`},
 
 {id:'bright.img',name:'Brightness / Contrast',cat:'Image',tagline:'Adjust brightness and contrast of an image',desc:'Apply pixel-level brightness (+/−255) and contrast (+/−127) adjustments using the standard Contrast Enhancement formula.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
-<input type="file" id="brightInput" accept="image/*" class="block text-sm mb-4 w-full">
+${fileDrop('brightInput','image/*',false,'','mb-4')}
 <div class="space-y-4 mb-6">
   <div>
     <label class="text-xs opacity-50 block mb-1">Brightness: <span id="brightLbl">0</span></label>
@@ -2241,8 +2266,7 @@ render:()=>`
 render:()=>`
 <div class="flex gap-4 mb-3 flex-wrap items-end">
   <div class="flex-1 min-w-40">
-    <label class="text-xs opacity-50 block mb-1">Load SVG File</label>
-    <input type="file" id="svgFileInput" accept=".svg,image/svg+xml" class="block text-sm w-full" onchange="svgLoadFile()">
+    ${fileDrop('svgFileInput','.svg,image/svg+xml',false,'svgLoadFile()','')}
   </div>
   <div class="w-24">
     <label class="text-xs opacity-50 block mb-1">Scale</label>
@@ -2256,8 +2280,7 @@ render:()=>`
 
 {id:'flip.img',name:'Flip Image',cat:'Image',tagline:'Flip an image horizontally or vertically',desc:'Mirror your image along the horizontal or vertical axis using Canvas transform operations.',
 render:()=>`
-<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
-<input type="file" id="flipInput" accept="image/*" class="block text-sm mb-6 w-full">
+${fileDrop('flipInput','image/*',false,'','mb-6')}
 <div class="flex gap-3">
   <button class="smpl-btn" onclick="imgFlip('h')">Flip Horizontal</button>
   <button class="smpl-btn-outline" onclick="imgFlip('v')">Flip Vertical</button>
@@ -2910,6 +2933,9 @@ function openTool(id) {
   showSection('workspace');
   // Post-render hooks
   setTimeout(setupAllDropZones, 30);
+  if (tool.id === 'rec.audio') setTimeout(checkAudioCompat, 50);
+  if (tool.id === 'rec.video') setTimeout(checkVideoCompat, 50);
+  if (tool.id === 'merge.pdf') { mergeFileList = []; }
   if (tool.id === 'glass.css') setTimeout(updateGlass, 50);
   if (tool.id === 'unix.time') setTimeout(startEpochClock, 50);
   if (tool.id === 'pomo.timer') { pomoSecs=0; pomoRunning=false; setTimeout(updatePomoDisplay, 50); }
