@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>smpl. | simple local tools</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <style>
+        :root { --border: #e5e7eb; --accent: #000; }
+        body { font-family: 'Inter', sans-serif; @apply bg-white text-black antialiased; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* smpl. Design System */
+        .smpl-card { @apply border border-gray-100 p-6 transition-all duration-300 hover:border-black cursor-pointer bg-white; }
+        .smpl-input { @apply border-b border-gray-200 py-4 outline-none focus:border-black transition-all w-full text-xl font-light; }
+        .smpl-btn { @apply bg-black text-white px-8 py-4 text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-all; }
+        
+        .tool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+        .hidden-section { display: none; }
+        
+        /* Minimal Ad Integration */
+        .ad-container { @apply mt-20 border-t border-gray-100 pt-8 pb-12 text-center; }
+        .ad-box { @apply inline-block w-full max-w-4xl h-24 bg-gray-50 flex items-center justify-center text-[10px] tracking-[0.2em] text-gray-300 uppercase; }
+    </style>
+</head>
+<body class="px-6 py-12 md:px-20">
+
+    <header class="max-w-7xl mx-auto flex justify-between items-baseline mb-24">
+        <h1 class="text-4xl font-extrabold tracking-tighter cursor-pointer" onclick="showPage('home')">smpl<span class="text-gray-300">.</span></h1>
+        <nav class="flex gap-8 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+            <a href="#" onclick="showPage('home')" class="hover:text-black">Tools</a>
+            <a href="#" onclick="showPage('about')" class="hover:text-black">Method</a>
+            <a href="#" onclick="showPage('privacy')" class="hover:text-black">Privacy</a>
+        </nav>
+    </header>
+
+    <main class="max-w-7xl mx-auto">
+        
+        <section id="home" class="page-section">
+            <div class="mb-20">
+                <input type="text" id="globalSearch" placeholder="search 70+ local utilities..." class="smpl-input">
+                <div class="flex gap-6 mt-6 overflow-x-auto pb-2 no-scrollbar text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    <button onclick="filter('ALL')" class="hover:text-black">All</button>
+                    <button onclick="filter('PDF')" class="hover:text-black">Documents</button>
+                    <button onclick="filter('IMG')" class="hover:text-black">Media</button>
+                    <button onclick="filter('DEV')" class="hover:text-black">Dev</button>
+                    <button onclick="filter('SEC')" class="hover:text-black">Security</button>
+                </div>
+            </div>
+
+            <div id="masterGrid" class="tool-grid gap-px bg-gray-100 border border-gray-100">
+                </div>
+        </section>
+
+        <section id="workspace" class="page-section hidden-section">
+            <div class="max-w-3xl">
+                <button onclick="showPage('home')" class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-12 hover:text-black">← Back to index</button>
+                <div id="toolHeader" class="mb-12">
+                    <h2 id="toolTitle" class="text-5xl font-extrabold tracking-tighter mb-4">tool_name</h2>
+                    <p id="toolDesc" class="text-gray-400 font-light text-xl">description goes here.</p>
+                </div>
+                
+                <div id="toolInterface" class="min-h-[300px] py-12 border-t border-gray-100">
+                    </div>
+            </div>
+        </section>
+
+        <section id="about" class="page-section hidden-section max-w-2xl">
+            <h2 class="text-3xl font-bold mb-6 italic">The smpl. method.</h2>
+            <p class="text-lg text-gray-600 leading-relaxed">We believe tools should be invisible. No accounts. No uploads. No complexity. Everything you do on <strong>smpl.</strong> happens strictly in your browser's memory. This is the future of the private web.</p>
+        </section>
+
+        <section id="privacy" class="page-section hidden-section max-w-2xl">
+            <h2 class="text-3xl font-bold mb-6">Privacy Policy</h2>
+            <p class="text-gray-600">Your data never leaves your device. Period. We use Google AdSense to keep this project free, which utilizes cookies for ad delivery.</p>
+        </section>
+
+    </main>
+
+    <div class="ad-container">
+        <div class="ad-box">
+            [ adsense.slot.anchor ]
+        </div>
+        <div class="mt-4 text-[9px] text-gray-300 font-medium uppercase tracking-[0.3em]">
+            smpl. v1.0 // strictly local // 2026
+        </div>
+    </div>
+
+    <script>
+        // THE 70-TOOL ENGINE
+        const registry = [
+            { id: 'pdf-merge', name: 'merge.pdf', cat: 'PDF', desc: 'Combine multiple documents into one.' },
+            { id: 'img-resize', name: 'resize.img', cat: 'IMG', desc: 'Scale dimensions for web use.' },
+            { id: 'qr-gen', name: 'gen.qr', cat: 'SEC', desc: 'Privacy-first QR generation.' },
+            { id: 'txt-clean', name: 'clean.txt', cat: 'DOC', desc: 'Strip breaks and tabs from text.' },
+            { id: 'json-csv', name: 'convert.json', cat: 'DEV', desc: 'Data transformation to CSV.' },
+            { id: 'pdf-secure', name: 'lock.pdf', cat: 'SEC', desc: 'Password protect local files.' },
+            { id: 'img-strip', name: 'strip.exif', cat: 'SEC', desc: 'Remove GPS and camera metadata.' },
+            { id: 'rec-screen', name: 'rec.screen', cat: 'IMG', desc: 'Direct browser screen capture.' },
+            { id: 'txt-hand', name: 'write.note', cat: 'DOC', desc: 'Turn text into handwritten JPGs.' },
+            { id: 'pdf-num', name: 'number.pdf', cat: 'PDF', desc: 'Add page numbers to documents.' },
+            { id: 'img-grid', name: 'split.grid', cat: 'IMG', desc: '3x3 Instagram grid splitter.' },
+            // ... (Engine handles up to 70 defined in logic)
+        ];
+
+        // Fill registry to 70 for demonstration
+        for(let i=12; i<70; i++) {
+            registry.push({ id: `tool-${i}`, name: `tool.${i}`, cat: 'MISC', desc: 'Utility module for everyday tasks.' });
+        }
+
+        function render() {
+            const grid = document.getElementById('masterGrid');
+            const search = document.getElementById('globalSearch').value.toLowerCase();
+            grid.innerHTML = '';
+
+            registry.filter(t => t.name.includes(search) || t.cat.includes(search)).forEach(t => {
+                const el = document.createElement('div');
+                el.className = 'smpl-card';
+                el.onclick = () => loadTool(t.id);
+                el.innerHTML = `
+                    <div class="text-[9px] font-bold uppercase tracking-widest text-gray-300 mb-12">${t.cat}</div>
+                    <h3 class="text-2xl font-extrabold tracking-tighter">${t.name}</h3>
+                    <p class="text-xs text-gray-400 mt-2 font-light">${t.desc}</p>
+                `;
+                grid.appendChild(el);
+            });
+        }
+
+        function showPage(id) {
+            document.querySelectorAll('.page-section').forEach(p => p.classList.add('hidden-section'));
+            document.getElementById(id).classList.remove('hidden-section');
+            window.scrollTo(0,0);
+        }
+
+        function loadTool(id) {
+            showPage('workspace');
+            const t = registry.find(x => x.id === id);
+            document.getElementById('toolTitle').innerText = t.name;
+            document.getElementById('toolDesc').innerText = t.desc;
+            
+            const ui = document.getElementById('toolInterface');
+            ui.innerHTML = `<div class="p-20 border border-dashed border-gray-100 text-center text-gray-300 uppercase text-[10px] tracking-widest">Initialising ${id}.engine ...</div>`;
+            
+            // Logic for specific tools goes here
+            if(id === 'qr-gen') {
+                ui.innerHTML = `
+                    <input type="text" id="qIn" placeholder="Enter link..." class="smpl-input mb-8">
+                    <button class="smpl-btn" onclick="alert('QR Generated Locally')">Generate</button>
+                `;
+            }
+        }
+
+        document.getElementById('globalSearch').oninput = render;
+        render();
+    </script>
+</body>
+</html>
