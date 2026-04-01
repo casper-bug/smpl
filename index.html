@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>smpl. — 70 Browser Tools</title>
 <meta name="description" content="70 free browser tools for PDF, image, text, and developer tasks. No uploads, everything runs locally in your browser.">
+<meta name="google-adsense-account" content="ca-pub-8998121531521723">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
@@ -56,7 +57,6 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#000;transition:backgr
 .cat-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.4;margin-bottom:8px}
 .tool-name{font-size:15px;font-weight:600;margin-bottom:6px;font-family:'JetBrains Mono',monospace}
 .tool-tagline{font-size:12px;opacity:0.55;line-height:1.5}
-.sponsored-badge{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;opacity:0.35;border:1px solid currentColor;padding:2px 6px}
 input[type=range]{-webkit-appearance:none;appearance:none;height:4px;background:#F3F4F6;outline:none;border-radius:0;cursor:pointer;width:100%}
 .dark input[type=range]{background:#262626}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;background:#000;cursor:pointer;border-radius:0}
@@ -164,15 +164,12 @@ pre{white-space:pre-wrap;word-break:break-all}
 <!-- FOOTER -->
 <footer class="border-t border-[#F3F4F6] dark:border-[#262626] mt-24 py-12">
 <div class="max-w-screen-xl mx-auto px-6">
-  <div class="border border-[#F3F4F6] dark:border-[#262626] p-8 mb-8 text-center">
-    <div class="sponsored-badge mb-3">Ad</div>
-    <p class="text-sm opacity-40">Your product here — reaching developers and designers who use browser tools daily.</p>
-    <a href="mailto:ads@smpl.tools" class="text-xs opacity-30 hover:opacity-60 transition-opacity mt-2 block">ads@smpl.tools</a>
-  </div>
-  <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs opacity-30">
-    <span class="mono">smpl. v1.0.0</span>
-    <span>70 tools. All local. All free.</span>
-    <span>No cookies. No tracking. No uploads.</span>
+  <div class="border-t border-[#F3F4F6] dark:border-[#262626] pt-6">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs opacity-30">
+      <span class="mono">smpl. v1.0.0</span>
+      <span>70 tools. All local. All free.</span>
+      <span>No cookies. No tracking. No uploads.</span>
+    </div>
   </div>
 </div>
 </footer>
@@ -2725,12 +2722,6 @@ function renderGrid(tools) {
   let count = 0;
   tools.forEach(tool => {
     count++;
-    if (count === 7) {
-      const ad = document.createElement('div');
-      ad.className = 'smpl-card';
-      ad.innerHTML = `<div class="sponsored-badge mb-3">Sponsored</div><div class="tool-name">Your Ad Here</div><p class="tool-tagline">Reach developers and designers who use browser tools daily. <a href="mailto:ads@smpl.tools" class="underline opacity-70">ads@smpl.tools</a></p>`;
-      grid.appendChild(ad);
-    }
     const card = document.createElement('div');
     card.className = 'smpl-card';
     card.onclick = () => openTool(tool.id);
