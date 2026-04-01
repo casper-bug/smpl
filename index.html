@@ -1296,7 +1296,7 @@ async function imgFlip(dir) {
     const ctx = c.getContext('2d');
     if (dir === 'h') { ctx.translate(img.naturalWidth, 0); ctx.scale(-1, 1); }
     else if (dir === 'v') { ctx.translate(0, img.naturalHeight); ctx.scale(1, -1); }
-    else { ctx.translate(img.naturalWidth, 0); ctx.scale(-1, 1); ctx.translate(img.naturalWidth, 0); ctx.rotate(Math.PI); }
+    else { ctx.transform(0, 1, 1, 0, 0, 0); }
     ctx.drawImage(img, 0, 0);
     const blob = await canvasToBlob(c);
     const label = dir === 'h' ? 'horizontally' : dir === 'v' ? 'vertically' : 'diagonally';
