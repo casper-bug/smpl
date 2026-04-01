@@ -377,7 +377,7 @@ async function pdfGray() {
     doc.setKeywords([]); doc.setCreator('smpl. grayscale'); doc.setProducer('smpl.');
     const bytes = await doc.save();
     download(new Blob([bytes],{type:'application/pdf'}), 'grayscale.pdf');
-    showMsg('grayPdfMsg','⚠ Metadata cleared. Note: true pixel-level grayscale requires PDF.js rendering (not available). Use your PDF viewer's accessibility/grayscale print option for full conversion.');
+    showMsg('grayPdfMsg','⚠ Limitation: This tool only clears colour metadata. For true greyscale conversion, use your PDF viewer\'s print-to-PDF feature with a greyscale/black-and-white option (e.g. File → Print → Colour: Greyscale).');
   } catch(e) { showMsg('grayPdfMsg','Error: '+e.message,true); }
 }
 
@@ -1163,7 +1163,7 @@ function hexToRgb() {
   let hex = document.getElementById('hexInput').value.replace('#','').trim();
   if (hex.length===3) hex = hex.split('').map(c=>c+c).join('');
   if (hex.length!==6) return;
-  const r=parseInt(hex.substr(0,2),16), g=parseInt(hex.substr(2,2),16), b=parseInt(hex.substr(4,2),16);
+  const r=parseInt(hex.slice(0,2),16), g=parseInt(hex.slice(2,4),16), b=parseInt(hex.slice(4,6),16);
   document.getElementById('hexPreview').style.background = `#${hex}`;
   document.getElementById('hexResult').textContent = `RGB(${r}, ${g}, ${b}) — HSL: ${rgbToHslStr(r,g,b)} — #${hex.toUpperCase()}`;
 }
@@ -1204,12 +1204,12 @@ function runDiff() {
   const dp=Array.from({length:m+1},()=>new Array(n+1).fill(0));
   for(let i=m-1;i>=0;i--) for(let j=n-1;j>=0;j--) {
     if(aLines[i]===bLines[j]) dp[i][j]=dp[i+1][j+1]+1;
-    else dp[i][j]=Math.max(dp[i+1]?dp[i+1][j]:0, dp[i][j+1]);
+    else dp[i][j]=Math.max(dp[i+1][j], dp[i][j+1]);
   }
   let i=0,j=0; const result=[];
   while(i<m||j<n) {
     if(i<m&&j<n&&aLines[i]===bLines[j]) { result.push({t:'eq',v:aLines[i]}); i++;j++; }
-    else if(j<n&&(i>=m||(dp[i+1]&&dp[i][j+1]>=dp[i+1][j]))) { result.push({t:'add',v:bLines[j]}); j++; }
+    else if(j<n&&(i>=m||dp[i][j+1]>=dp[i+1][j])) { result.push({t:'add',v:bLines[j]}); j++; }
     else { result.push({t:'del',v:aLines[i]}); i++; }
   }
   document.getElementById('diffOutput').innerHTML = result.map(r=>
@@ -1536,7 +1536,7 @@ function convertUnix() {
   const raw = document.getElementById('unixInput').value.trim();
   const ts = parseInt(raw);
   if (isNaN(ts)) { showMsg('unixMsg','Enter a valid timestamp',true); return; }
-  const d = new Date(ts < 1e10 ? ts*1000 : ts);
+  const d = new Date(ts < 1e10 ? ts*1000 : ts); // Timestamps < 10B are assumed to be seconds (before year 2286)
   document.getElementById('unixOutput').innerHTML = `
     <div class="space-y-2 mono text-sm">
       <div><span class="opacity-50">UTC:&nbsp;&nbsp;&nbsp;</span> ${d.toUTCString()}</div>
@@ -1685,7 +1685,7 @@ function startPomo() {
       pomoSecs = (nextMode==='work'?workMins:breakMins)*60;
       const lbl = document.getElementById('pomoModeLabel');
       if(lbl) lbl.textContent = nextMode.charAt(0).toUpperCase()+nextMode.slice(1);
-      try { new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA==').play(); } catch {}
+      try { new Notification('smpl. — Time is up!'); } catch {}
     }
   },1000);
   document.getElementById('pomoStartBtn').style.display='none';
