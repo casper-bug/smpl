@@ -94,7 +94,7 @@ pre{white-space:pre-wrap;word-break:break-all}
     <button onclick="showSection('home')" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">Tools</button>
     <button onclick="showSection('about')" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">Method</button>
     <button onclick="showSection('privacy')" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">Privacy</button>
-    <button onclick="toggleDark()" id="darkBtn" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity" aria-label="Toggle dark mode">◐</button>
+    <button onclick="toggleDark()" id="darkBtn" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity" aria-label="Toggle dark mode" aria-pressed="false">◐</button>
   </nav>
 </div>
 </header>
@@ -198,7 +198,9 @@ function copyToClipboard(text) {
 function toggleDark() {
   const isDark = document.documentElement.classList.toggle('dark');
   localStorage.setItem('smpl-dark', isDark ? '1' : '0');
-  document.getElementById('darkBtn').textContent = isDark ? '◑' : '◐';
+  const btn = document.getElementById('darkBtn');
+  btn.textContent = isDark ? '◑' : '◐';
+  btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
 }
 function showSection(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -1117,7 +1119,7 @@ function minifyJs() {
   const orig = code.length;
   // Remove block comments
   code = code.replace(/\/\*[\s\S]*?\*\//g, '');
-  // Remove single line comments (not inside strings, simple heuristic)
+  // Remove single line comments (simple heuristic — may incorrectly strip // inside strings)
   code = code.replace(/(?<![:\/'"])(\/\/[^\n]*)/g, '');
   // Collapse whitespace (not inside strings - simplified)
   code = code.replace(/\n+/g, '\n').replace(/[ \t]+/g, ' ');
@@ -1260,6 +1262,9 @@ function stripHtml() {
   } catch(e) { showMsg('htmlStripMsg','Error: '+e.message,true); }
 }
 
+// Simplified YAML parser — supports key:value pairs, nested objects (indentation),
+// arrays (dash notation), basic types (bool/null/number/string). Does not support
+// anchors/aliases, multi-line strings, inline arrays/objects, or quoted keys with colons.
 function parseYAML(yaml) {
   const lines = yaml.split('\n');
   function parseValue(v) {
@@ -1536,7 +1541,7 @@ function convertUnix() {
   const raw = document.getElementById('unixInput').value.trim();
   const ts = parseInt(raw);
   if (isNaN(ts)) { showMsg('unixMsg','Enter a valid timestamp',true); return; }
-  const d = new Date(ts < 1e10 ? ts*1000 : ts); // Timestamps < 10B are assumed to be seconds (before year 2286)
+  const d = new Date(ts < 1e12 ? ts*1000 : ts); // Timestamps < 1 trillion are assumed to be seconds (ms timestamps exceed 1e12 after ~2001)
   document.getElementById('unixOutput').innerHTML = `
     <div class="space-y-2 mono text-sm">
       <div><span class="opacity-50">UTC:&nbsp;&nbsp;&nbsp;</span> ${d.toUTCString()}</div>
@@ -1685,7 +1690,13 @@ function startPomo() {
       pomoSecs = (nextMode==='work'?workMins:breakMins)*60;
       const lbl = document.getElementById('pomoModeLabel');
       if(lbl) lbl.textContent = nextMode.charAt(0).toUpperCase()+nextMode.slice(1);
-      try { new Notification('smpl. — Time is up!'); } catch {}
+      try {
+        if (Notification.permission === 'granted') {
+          new Notification('smpl. — Time is up!');
+        } else if (Notification.permission !== 'denied') {
+          Notification.requestPermission().then(p => { if(p==='granted') new Notification('smpl. — Time is up!'); });
+        }
+      } catch {}
     }
   },1000);
   document.getElementById('pomoStartBtn').style.display='none';
@@ -2785,7 +2796,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const dark = localStorage.getItem('smpl-dark');
   if (dark === '1' || (dark === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
     document.documentElement.classList.add('dark');
-    document.getElementById('darkBtn').textContent = '◑';
+    const btn = document.getElementById('darkBtn');
+    btn.textContent = '◑';
+    btn.setAttribute('aria-pressed', 'true');
   }
   // Render all tools
   renderGrid(registry);
