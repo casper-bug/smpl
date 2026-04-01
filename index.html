@@ -1,159 +1,2796 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>smpl. | simple local tools</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <style>
-        :root { --border: #e5e7eb; --accent: #000; }
-        body { font-family: 'Inter', sans-serif; @apply bg-white text-black antialiased; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        
-        /* smpl. Design System */
-        .smpl-card { @apply border border-gray-100 p-6 transition-all duration-300 hover:border-black cursor-pointer bg-white; }
-        .smpl-input { @apply border-b border-gray-200 py-4 outline-none focus:border-black transition-all w-full text-xl font-light; }
-        .smpl-btn { @apply bg-black text-white px-8 py-4 text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-all; }
-        
-        .tool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-        .hidden-section { display: none; }
-        
-        /* Minimal Ad Integration */
-        .ad-container { @apply mt-20 border-t border-gray-100 pt-8 pb-12 text-center; }
-        .ad-box { @apply inline-block w-full max-w-4xl h-24 bg-gray-50 flex items-center justify-center text-[10px] tracking-[0.2em] text-gray-300 uppercase; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>smpl. — 70 Browser Tools</title>
+<meta name="description" content="70 free browser tools for PDF, image, text, and developer tasks. No uploads, everything runs locally in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] } } } }</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#fff;color:#000;transition:background 0.3s ease,color 0.3s ease}
+.dark body{background:#0A0A0A;color:#fff}
+.mono{font-family:'JetBrains Mono',monospace}
+.smpl-card{border:1px solid #F3F4F6;padding:24px;cursor:pointer;transition:border-color 0.3s ease;background:#fff}
+.dark .smpl-card{border-color:#262626;background:#0A0A0A}
+.smpl-card:hover{border-color:#000}
+.dark .smpl-card:hover{border-color:#fff}
+.smpl-input{border:none;border-bottom:1px solid #F3F4F6;padding:12px 0;outline:none;transition:border-color 0.3s ease;width:100%;background:transparent;color:inherit;font-family:'Inter',sans-serif}
+.dark .smpl-input{border-color:#262626}
+.smpl-input:focus{border-color:#000}
+.dark .smpl-input:focus{border-color:#fff}
+.smpl-btn{background:#000;color:#fff;padding:10px 24px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;border:none;transition:opacity 0.3s ease;font-family:'Inter',sans-serif}
+.dark .smpl-btn{background:#fff;color:#000}
+.smpl-btn:hover{opacity:0.75}
+.smpl-btn-outline{background:transparent;color:#000;border:1px solid #000;padding:9px 18px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;transition:all 0.3s ease;font-family:'Inter',sans-serif}
+.dark .smpl-btn-outline{color:#fff;border-color:#fff}
+.smpl-btn-outline:hover{opacity:0.75}
+.smpl-textarea{width:100%;border:1px solid #F3F4F6;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;background:transparent;outline:none;resize:vertical;min-height:160px;transition:border-color 0.3s ease;color:inherit}
+.dark .smpl-textarea{border-color:#262626}
+.smpl-textarea:focus{border-color:#000}
+.dark .smpl-textarea:focus{border-color:#fff}
+.smpl-select{border:1px solid #F3F4F6;padding:9px 12px;background:transparent;outline:none;color:inherit;font-family:'Inter',sans-serif;cursor:pointer}
+.dark .smpl-select{border-color:#262626;background:#0A0A0A;color:#fff}
+#masterGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1px;background:#F3F4F6}
+.dark #masterGrid{background:#262626}
+.section{display:none}
+.section.active{display:block}
+.tab-btn{background:transparent;border:1px solid transparent;padding:8px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all 0.3s ease;color:inherit;font-family:'Inter',sans-serif}
+.tab-btn:hover{border-color:#000}
+.dark .tab-btn:hover{border-color:#fff}
+.tab-btn.active-tab{border-color:#000!important}
+.dark .tab-btn.active-tab{border-color:#fff!important}
+.diff-add{background:#d4edda;color:#155724;display:block;padding:1px 4px}
+.dark .diff-add{background:#1a3a1a;color:#a3d9a5}
+.diff-del{background:#f8d7da;color:#721c24;display:block;padding:1px 4px}
+.dark .diff-del{background:#3a1a1a;color:#d9a5a5}
+.diff-eq{display:block;padding:1px 4px;opacity:0.5}
+.cat-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.4;margin-bottom:8px}
+.tool-name{font-size:15px;font-weight:600;margin-bottom:6px;font-family:'JetBrains Mono',monospace}
+.tool-tagline{font-size:12px;opacity:0.55;line-height:1.5}
+input[type=range]{-webkit-appearance:none;appearance:none;height:4px;background:#F3F4F6;outline:none;border-radius:0;cursor:pointer;width:100%}
+.dark input[type=range]{background:#262626}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;background:#000;cursor:pointer;border-radius:0}
+.dark input[type=range]::-webkit-slider-thumb{background:#fff}
+input[type=color]{border:none;padding:0;width:40px;height:32px;cursor:pointer;background:transparent}
+details summary::-webkit-details-marker{display:none}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#F3F4F6}
+.dark ::-webkit-scrollbar-thumb{background:#262626}
+pre{white-space:pre-wrap;word-break:break-all}
+#mdPreview h1,#mdPreview h2,#mdPreview h3{font-weight:700;margin:1em 0 0.5em}
+#mdPreview h1{font-size:1.8em}
+#mdPreview h2{font-size:1.4em}
+#mdPreview h3{font-size:1.2em}
+#mdPreview p{margin:0.5em 0;line-height:1.7}
+#mdPreview ul,#mdPreview ol{margin:0.5em 0 0.5em 1.5em}
+#mdPreview code{font-family:'JetBrains Mono',monospace;font-size:0.85em;background:#F3F4F6;padding:1px 4px}
+.dark #mdPreview code{background:#262626}
+#mdPreview pre{background:#F3F4F6;padding:12px;margin:0.5em 0}
+.dark #mdPreview pre{background:#1a1a1a}
+#mdPreview blockquote{border-left:3px solid #F3F4F6;padding-left:12px;opacity:0.7;margin:0.5em 0}
+#mdPreview a{text-decoration:underline}
+#mdPreview table{border-collapse:collapse;width:100%;margin:0.5em 0}
+#mdPreview td,#mdPreview th{border:1px solid #F3F4F6;padding:6px 10px}
+.dark #mdPreview td,.dark #mdPreview th{border-color:#262626}
+</style>
 </head>
-<body class="px-6 py-12 md:px-20">
-
-    <header class="max-w-7xl mx-auto flex justify-between items-baseline mb-24">
-        <h1 class="text-4xl font-extrabold tracking-tighter cursor-pointer" onclick="showPage('home')">smpl<span class="text-gray-300">.</span></h1>
-        <nav class="flex gap-8 text-[11px] font-bold uppercase tracking-widest text-gray-400">
-            <a href="#" onclick="showPage('home')" class="hover:text-black">Tools</a>
-            <a href="#" onclick="showPage('about')" class="hover:text-black">Method</a>
-            <a href="#" onclick="showPage('privacy')" class="hover:text-black">Privacy</a>
-        </nav>
-    </header>
-
-    <main class="max-w-7xl mx-auto">
-        
-        <section id="home" class="page-section">
-            <div class="mb-20">
-                <input type="text" id="globalSearch" placeholder="search 70+ local utilities..." class="smpl-input">
-                <div class="flex gap-6 mt-6 overflow-x-auto pb-2 no-scrollbar text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                    <button onclick="filter('ALL')" class="hover:text-black">All</button>
-                    <button onclick="filter('PDF')" class="hover:text-black">Documents</button>
-                    <button onclick="filter('IMG')" class="hover:text-black">Media</button>
-                    <button onclick="filter('DEV')" class="hover:text-black">Dev</button>
-                    <button onclick="filter('SEC')" class="hover:text-black">Security</button>
-                </div>
-            </div>
-
-            <div id="masterGrid" class="tool-grid gap-px bg-gray-100 border border-gray-100">
-                </div>
-        </section>
-
-        <section id="workspace" class="page-section hidden-section">
-            <div class="max-w-3xl">
-                <button onclick="showPage('home')" class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-12 hover:text-black">← Back to index</button>
-                <div id="toolHeader" class="mb-12">
-                    <h2 id="toolTitle" class="text-5xl font-extrabold tracking-tighter mb-4">tool_name</h2>
-                    <p id="toolDesc" class="text-gray-400 font-light text-xl">description goes here.</p>
-                </div>
-                
-                <div id="toolInterface" class="min-h-[300px] py-12 border-t border-gray-100">
-                    </div>
-            </div>
-        </section>
-
-        <section id="about" class="page-section hidden-section max-w-2xl">
-            <h2 class="text-3xl font-bold mb-6 italic">The smpl. method.</h2>
-            <p class="text-lg text-gray-600 leading-relaxed">We believe tools should be invisible. No accounts. No uploads. No complexity. Everything you do on <strong>smpl.</strong> happens strictly in your browser's memory. This is the future of the private web.</p>
-        </section>
-
-        <section id="privacy" class="page-section hidden-section max-w-2xl">
-            <h2 class="text-3xl font-bold mb-6">Privacy Policy</h2>
-            <p class="text-gray-600">Your data never leaves your device. Period. We use Google AdSense to keep this project free, which utilizes cookies for ad delivery.</p>
-        </section>
-
-    </main>
-
-    <div class="ad-container">
-        <div class="ad-box">
-            [ adsense.slot.anchor ]
-        </div>
-        <div class="mt-4 text-[9px] text-gray-300 font-medium uppercase tracking-[0.3em]">
-            smpl. v1.0 // strictly local // 2026
-        </div>
+<body class="min-h-screen bg-white dark:bg-[#0A0A0A] text-black dark:text-white">
+<!-- HEADER -->
+<header class="sticky top-0 z-50 border-b border-[#F3F4F6] dark:border-[#262626] bg-white dark:bg-[#0A0A0A] transition-colors">
+<div class="max-w-screen-xl mx-auto px-6 py-4 flex items-center justify-between">
+  <button onclick="showSection('home')" class="text-xl font-bold mono tracking-tight hover:opacity-70 transition-opacity">smpl.<span class="text-[#9CA3AF]">.</span></button>
+  <nav class="flex items-center gap-6">
+    <button onclick="showSection('home')" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">Tools</button>
+    <button onclick="showSection('about')" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">Method</button>
+    <button onclick="showSection('privacy')" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">Privacy</button>
+    <button onclick="toggleDark()" id="darkBtn" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity" aria-label="Toggle dark mode" aria-pressed="false">◐</button>
+  </nav>
+</div>
+</header>
+<!-- MAIN -->
+<main class="max-w-screen-xl mx-auto px-6">
+<!-- HOME SECTION -->
+<section id="home" class="section active py-16">
+  <div class="mb-12">
+    <h1 class="text-4xl font-bold mono mb-3">70 tools.<br><span class="opacity-40">No uploads. No data.</span></h1>
+    <p class="text-sm opacity-50 max-w-md leading-relaxed">Every tool runs entirely in your browser. Your files never leave your device.</p>
+  </div>
+  <div class="mb-8">
+    <input type="text" id="searchInput" class="smpl-input text-sm mb-6" placeholder="Search tools..." oninput="filterTools()" autocomplete="off" style="font-size:16px">
+    <div class="flex flex-wrap gap-2" id="catTabs">
+      <button class="tab-btn active-tab" data-cat="ALL" onclick="setCat('ALL')">All</button>
+      <button class="tab-btn" data-cat="PDF" onclick="setCat('PDF')">PDF</button>
+      <button class="tab-btn" data-cat="Image" onclick="setCat('Image')">Image</button>
+      <button class="tab-btn" data-cat="Dev" onclick="setCat('Dev')">Dev</button>
+      <button class="tab-btn" data-cat="Doc" onclick="setCat('Doc')">Doc</button>
+      <button class="tab-btn" data-cat="Misc" onclick="setCat('Misc')">Misc</button>
     </div>
+  </div>
+  <div id="masterGrid"></div>
+  <div id="noResults" class="py-16 text-center opacity-30 text-sm" style="display:none">No tools found. Try a different search.</div>
+</section>
+<!-- WORKSPACE SECTION -->
+<section id="workspace" class="section py-12">
+  <div id="workspaceContent"></div>
+</section>
+<!-- ABOUT SECTION -->
+<section id="about" class="section py-16 max-w-2xl">
+  <h1 class="text-3xl font-bold mono mb-8">Method.</h1>
+  <div class="space-y-6 text-sm leading-relaxed opacity-70">
+    <p>smpl. is a collection of 70 browser-based tools for working with PDFs, images, text, and code. Every tool runs entirely client-side — no servers, no uploads, no accounts.</p>
+    <p>The design philosophy is radical simplicity. Each tool does one thing. The interface gets out of the way.</p>
+    <p>Built with vanilla JavaScript, Tailwind CSS, pdf-lib for PDF operations, and the Canvas API for image manipulation.</p>
+    <p>Performance is intentional. Files are processed using Web APIs: File API, Canvas 2D, WebCrypto, MediaRecorder. Nothing is sent anywhere.</p>
+    <h2 class="text-lg font-bold mono opacity-100 mt-8 mb-4">Stack</h2>
+    <ul class="space-y-2">
+      <li>— Tailwind CSS (CDN, no build step)</li>
+      <li>— pdf-lib v1.17.1 (PDF manipulation)</li>
+      <li>— JSZip v3.10.1 (ZIP archive creation)</li>
+      <li>— qrcodejs (QR code generation)</li>
+      <li>— marked.js (Markdown parsing)</li>
+      <li>— Google Fonts (Inter + JetBrains Mono)</li>
+    </ul>
+  </div>
+</section>
+<!-- PRIVACY SECTION -->
+<section id="privacy" class="section py-16 max-w-2xl">
+  <h1 class="text-3xl font-bold mono mb-8">Privacy.</h1>
+  <div class="space-y-6 text-sm leading-relaxed opacity-70">
+    <p class="text-base font-semibold opacity-100">Your files never leave your device. Ever.</p>
+    <p>All processing happens in your browser using JavaScript. No data is transmitted to any server. No analytics. No tracking. No cookies (except localStorage for dark mode preference).</p>
+    <h2 class="text-lg font-bold mono opacity-100 mt-8 mb-4">What we store</h2>
+    <ul class="space-y-2">
+      <li>— <code class="mono text-xs bg-[#F3F4F6] dark:bg-[#1a1a1a] px-1">smpl-dark</code>: Your dark mode preference (localStorage)</li>
+      <li>— Nothing else. Seriously.</li>
+    </ul>
+    <h2 class="text-lg font-bold mono opacity-100 mt-8 mb-4">Third-party resources</h2>
+    <p>We load CSS/JS from Google Fonts CDN, jsDelivr, Cloudflare CDN, and unpkg. These services may log your IP address as part of their normal CDN operation. We have no control over their logging practices.</p>
+    <h2 class="text-lg font-bold mono opacity-100 mt-8 mb-4">Browser permissions</h2>
+    <p>Some tools request browser permissions: microphone (audio recorder), screen capture (screen recorder). These are only requested when you click the start button — never automatically.</p>
+  </div>
+</section>
+</main>
+<!-- FOOTER -->
+<footer class="border-t border-[#F3F4F6] dark:border-[#262626] mt-24 py-12">
+<div class="max-w-screen-xl mx-auto px-6">
+  <div class="border-t border-[#F3F4F6] dark:border-[#262626] pt-6">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs opacity-30">
+      <span class="mono">smpl. v1.0.0</span>
+      <span>70 tools. All local. All free.</span>
+      <span>No cookies. No tracking. No uploads.</span>
+    </div>
+  </div>
+</div>
+</footer>
 
-    <script>
-        // THE 70-TOOL ENGINE
-        const registry = [
-            { id: 'pdf-merge', name: 'merge.pdf', cat: 'PDF', desc: 'Combine multiple documents into one.' },
-            { id: 'img-resize', name: 'resize.img', cat: 'IMG', desc: 'Scale dimensions for web use.' },
-            { id: 'qr-gen', name: 'gen.qr', cat: 'SEC', desc: 'Privacy-first QR generation.' },
-            { id: 'txt-clean', name: 'clean.txt', cat: 'DOC', desc: 'Strip breaks and tabs from text.' },
-            { id: 'json-csv', name: 'convert.json', cat: 'DEV', desc: 'Data transformation to CSV.' },
-            { id: 'pdf-secure', name: 'lock.pdf', cat: 'SEC', desc: 'Password protect local files.' },
-            { id: 'img-strip', name: 'strip.exif', cat: 'SEC', desc: 'Remove GPS and camera metadata.' },
-            { id: 'rec-screen', name: 'rec.screen', cat: 'IMG', desc: 'Direct browser screen capture.' },
-            { id: 'txt-hand', name: 'write.note', cat: 'DOC', desc: 'Turn text into handwritten JPGs.' },
-            { id: 'pdf-num', name: 'number.pdf', cat: 'PDF', desc: 'Add page numbers to documents.' },
-            { id: 'img-grid', name: 'split.grid', cat: 'IMG', desc: '3x3 Instagram grid splitter.' },
-            // ... (Engine handles up to 70 defined in logic)
-        ];
+<script>
+// ============================================================
+// UTILITIES
+// ============================================================
+function download(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function downloadText(text, filename, mime) {
+  download(new Blob([text], {type: mime || 'text/plain'}), filename);
+}
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).catch(e => console.error('Copy failed:', e));
+}
+function toggleDark() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('smpl-dark', isDark ? '1' : '0');
+  const btn = document.getElementById('darkBtn');
+  btn.textContent = isDark ? '◑' : '◐';
+  btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+}
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) { el.classList.add('active'); window.scrollTo(0,0); }
+}
+function showMsg(id, msg, isError) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? '#ef4444' : (document.documentElement.classList.contains('dark') ? '#fff' : '#000');
+  el.style.display = 'block';
+  setTimeout(() => { if (el) el.style.display = 'none'; }, 4000);
+}
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-        // Fill registry to 70 for demonstration
-        for(let i=12; i<70; i++) {
-            registry.push({ id: `tool-${i}`, name: `tool.${i}`, cat: 'MISC', desc: 'Utility module for everyday tasks.' });
+// ============================================================
+// IMAGE HELPERS
+// ============================================================
+function loadImgFile(inputId) {
+  return new Promise((resolve, reject) => {
+    const inp = document.getElementById(inputId);
+    if (!inp || !inp.files || !inp.files[0]) { reject('No file selected'); return; }
+    const file = inp.files[0];
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject('Failed to load image'); };
+    img.src = url;
+  });
+}
+function canvasToBlob(canvas, type, quality) {
+  return new Promise(resolve => canvas.toBlob(resolve, type || 'image/png', quality || 0.92));
+}
+function mkCanvas(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  return c;
+}
+
+// ============================================================
+// PDF TOOL FUNCTIONS
+// ============================================================
+async function pdfMerge() {
+  const inp = document.getElementById('mergeInput');
+  if (!inp.files.length) { showMsg('mergeMsg','Select at least 2 PDF files',true); return; }
+  showMsg('mergeMsg','Merging…');
+  try {
+    const merged = await PDFLib.PDFDocument.create();
+    for (const file of inp.files) {
+      const buf = await file.arrayBuffer();
+      const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+      const pages = await merged.copyPages(doc, doc.getPageIndices());
+      pages.forEach(p => merged.addPage(p));
+    }
+    const bytes = await merged.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'merged.pdf');
+    showMsg('mergeMsg', `Merged ${inp.files.length} PDFs successfully`);
+  } catch(e) { showMsg('mergeMsg','Error: '+e.message,true); }
+}
+
+async function pdfSplit() {
+  const inp = document.getElementById('splitInput');
+  if (!inp.files[0]) { showMsg('splitMsg','Select a PDF file',true); return; }
+  showMsg('splitMsg','Splitting…');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    const zip = new JSZip();
+    for (let i = 0; i < doc.getPageCount(); i++) {
+      const newDoc = await PDFLib.PDFDocument.create();
+      const [page] = await newDoc.copyPages(doc, [i]);
+      newDoc.addPage(page);
+      const bytes = await newDoc.save();
+      zip.file(`page_${String(i+1).padStart(3,'0')}.pdf`, bytes);
+    }
+    const blob = await zip.generateAsync({type:'blob'});
+    download(blob, 'split_pages.zip');
+    showMsg('splitMsg', `Split into ${doc.getPageCount()} pages`);
+  } catch(e) { showMsg('splitMsg','Error: '+e.message,true); }
+}
+
+async function pdfNumber() {
+  const inp = document.getElementById('numberInput');
+  if (!inp.files[0]) { showMsg('numberMsg','Select a PDF file',true); return; }
+  showMsg('numberMsg','Adding page numbers…');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    const font = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
+    const size = parseInt(document.getElementById('numberSize').value) || 10;
+    const fmt = document.getElementById('numberFmt').value;
+    const total = doc.getPageCount();
+    doc.getPages().forEach((page, i) => {
+      const { width, height } = page.getSize();
+      let label = fmt === 'n' ? String(i+1) : fmt === 'n_of_t' ? `${i+1} of ${total}` : `Page ${i+1}`;
+      const tw = font.widthOfTextAtSize(label, size);
+      page.drawText(label, { x: (width - tw) / 2, y: 20, size, font, color: PDFLib.rgb(0,0,0) });
+    });
+    const bytes = await doc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'numbered.pdf');
+    showMsg('numberMsg','Page numbers added');
+  } catch(e) { showMsg('numberMsg','Error: '+e.message,true); }
+}
+
+async function pdfRotate() {
+  const inp = document.getElementById('rotateInput');
+  if (!inp.files[0]) { showMsg('rotateMsg','Select a PDF file',true); return; }
+  showMsg('rotateMsg','Rotating…');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    const deg = parseInt(document.getElementById('rotateDeg').value) || 90;
+    const pagesInput = document.getElementById('rotatePages').value.trim();
+    const pages = doc.getPages();
+    let indices = [];
+    if (!pagesInput || pagesInput.toLowerCase() === 'all') {
+      indices = pages.map((_,i) => i);
+    } else {
+      pagesInput.split(',').forEach(s => {
+        s = s.trim();
+        if (s.includes('-')) {
+          const [a,b] = s.split('-').map(n => parseInt(n)-1);
+          for (let k=a; k<=Math.min(b, pages.length-1); k++) indices.push(k);
+        } else {
+          const n = parseInt(s)-1;
+          if (n>=0 && n<pages.length) indices.push(n);
         }
+      });
+    }
+    indices.forEach(i => {
+      const cur = pages[i].getRotation().angle;
+      pages[i].setRotation(PDFLib.degrees((cur + deg) % 360));
+    });
+    const bytes = await doc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'rotated.pdf');
+    showMsg('rotateMsg',`Rotated ${indices.length} page(s) by ${deg}°`);
+  } catch(e) { showMsg('rotateMsg','Error: '+e.message,true); }
+}
 
-        function render() {
-            const grid = document.getElementById('masterGrid');
-            const search = document.getElementById('globalSearch').value.toLowerCase();
-            grid.innerHTML = '';
+async function pdfDelete() {
+  const inp = document.getElementById('deleteInput');
+  if (!inp.files[0]) { showMsg('deleteMsg','Select a PDF file',true); return; }
+  const pagesStr = document.getElementById('deletePages').value.trim();
+  if (!pagesStr) { showMsg('deleteMsg','Enter page numbers to delete',true); return; }
+  showMsg('deleteMsg','Deleting pages…');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const src = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    const toDelete = new Set();
+    pagesStr.split(',').forEach(s => {
+      s = s.trim();
+      if (s.includes('-')) {
+        const [a,b] = s.split('-').map(n => parseInt(n)-1);
+        for (let k=a; k<=b; k++) toDelete.add(k);
+      } else { toDelete.add(parseInt(s)-1); }
+    });
+    const newDoc = await PDFLib.PDFDocument.create();
+    const keep = src.getPageIndices().filter(i => !toDelete.has(i));
+    const pages = await newDoc.copyPages(src, keep);
+    pages.forEach(p => newDoc.addPage(p));
+    const bytes = await newDoc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'deleted_pages.pdf');
+    showMsg('deleteMsg',`Kept ${keep.length} pages, deleted ${toDelete.size}`);
+  } catch(e) { showMsg('deleteMsg','Error: '+e.message,true); }
+}
 
-            registry.filter(t => t.name.includes(search) || t.cat.includes(search)).forEach(t => {
-                const el = document.createElement('div');
-                el.className = 'smpl-card';
-                el.onclick = () => loadTool(t.id);
-                el.innerHTML = `
-                    <div class="text-[9px] font-bold uppercase tracking-widest text-gray-300 mb-12">${t.cat}</div>
-                    <h3 class="text-2xl font-extrabold tracking-tighter">${t.name}</h3>
-                    <p class="text-xs text-gray-400 mt-2 font-light">${t.desc}</p>
-                `;
-                grid.appendChild(el);
-            });
+async function pdfGray() {
+  const inp = document.getElementById('grayPdfInput');
+  if (!inp.files[0]) { showMsg('grayPdfMsg','Select a PDF file',true); return; }
+  showMsg('grayPdfMsg','Processing…');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    doc.setTitle(''); doc.setAuthor(''); doc.setSubject('');
+    doc.setKeywords([]); doc.setCreator('smpl. grayscale'); doc.setProducer('smpl.');
+    const bytes = await doc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'grayscale.pdf');
+    showMsg('grayPdfMsg','⚠ Limitation: This tool only clears colour metadata. For true greyscale conversion, use your PDF viewer\'s print-to-PDF feature with a greyscale/black-and-white option (e.g. File → Print → Colour: Greyscale).');
+  } catch(e) { showMsg('grayPdfMsg','Error: '+e.message,true); }
+}
+
+async function pdfLock() {
+  const inp = document.getElementById('lockInput');
+  if (!inp.files[0]) { showMsg('lockMsg','Select a PDF file',true); return; }
+  const userPass = document.getElementById('lockUser').value;
+  const ownerPass = document.getElementById('lockOwner').value;
+  if (!userPass && !ownerPass) { showMsg('lockMsg','Enter at least one password',true); return; }
+  showMsg('lockMsg','⚠ Note: pdf-lib browser build has limited encryption support. The PDF will be saved with metadata only. Use a server-side tool for full encryption.');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    doc.setCreator('smpl. locked');
+    const bytes = await doc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'locked.pdf');
+  } catch(e) { showMsg('lockMsg','Error: '+e.message,true); }
+}
+
+async function pdfUnlock() {
+  const inp = document.getElementById('unlockInput');
+  if (!inp.files[0]) { showMsg('unlockMsg','Select a PDF file',true); return; }
+  const pass = document.getElementById('unlockPass').value;
+  showMsg('unlockMsg','Unlocking…');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(buf, {password: pass, ignoreEncryption:true});
+    const bytes = await doc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'unlocked.pdf');
+    showMsg('unlockMsg','Saved without encryption');
+  } catch(e) { showMsg('unlockMsg','Error: '+e.message,true); }
+}
+
+async function jpgToPdf() {
+  const inp = document.getElementById('jpgInput');
+  if (!inp.files.length) { showMsg('jpgMsg','Select image files',true); return; }
+  showMsg('jpgMsg','Converting…');
+  try {
+    const doc = await PDFLib.PDFDocument.create();
+    for (const file of inp.files) {
+      const buf = await file.arrayBuffer();
+      let img;
+      if (file.type === 'image/png') img = await doc.embedPng(buf);
+      else img = await doc.embedJpg(buf);
+      const page = doc.addPage([img.width, img.height]);
+      page.drawImage(img, {x:0, y:0, width:img.width, height:img.height});
+    }
+    const bytes = await doc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'images.pdf');
+    showMsg('jpgMsg',`Created PDF from ${inp.files.length} image(s)`);
+  } catch(e) { showMsg('jpgMsg','Error: '+e.message,true); }
+}
+
+async function pdfSlim() {
+  const inp = document.getElementById('slimInput');
+  if (!inp.files[0]) { showMsg('slimMsg','Select a PDF file',true); return; }
+  showMsg('slimMsg','Processing…');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const origSize = buf.byteLength;
+    const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    doc.setTitle(''); doc.setAuthor(''); doc.setSubject('');
+    doc.setKeywords([]); doc.setCreator(''); doc.setProducer('');
+    const bytes = await doc.save({objectsPerTick:50, useObjectStreams:false});
+    const newSize = bytes.byteLength;
+    const saved = ((origSize - newSize) / origSize * 100).toFixed(1);
+    download(new Blob([bytes],{type:'application/pdf'}), 'slim.pdf');
+    showMsg('slimMsg',`Original: ${(origSize/1024).toFixed(1)}KB → New: ${(newSize/1024).toFixed(1)}KB (${saved}% reduction)`);
+  } catch(e) { showMsg('slimMsg','Error: '+e.message,true); }
+}
+
+async function pdfMetaLoad() {
+  const inp = document.getElementById('metaInput');
+  if (!inp.files[0]) return;
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    document.getElementById('metaTitle').value = doc.getTitle() || '';
+    document.getElementById('metaAuthor').value = doc.getAuthor() || '';
+    document.getElementById('metaSubject').value = doc.getSubject() || '';
+    const kw = doc.getKeywords();
+    document.getElementById('metaKeywords').value = Array.isArray(kw) ? kw.join(', ') : (kw || '');
+    document.getElementById('metaCreator').value = doc.getCreator() || '';
+    showMsg('metaMsg','Metadata loaded');
+  } catch(e) { showMsg('metaMsg','Error: '+e.message,true); }
+}
+
+async function pdfMeta() {
+  const inp = document.getElementById('metaInput');
+  if (!inp.files[0]) { showMsg('metaMsg','Select a PDF file',true); return; }
+  showMsg('metaMsg','Saving…');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    doc.setTitle(document.getElementById('metaTitle').value);
+    doc.setAuthor(document.getElementById('metaAuthor').value);
+    doc.setSubject(document.getElementById('metaSubject').value);
+    const kw = document.getElementById('metaKeywords').value;
+    doc.setKeywords(kw ? kw.split(',').map(s=>s.trim()) : []);
+    doc.setCreator(document.getElementById('metaCreator').value);
+    const bytes = await doc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'meta_updated.pdf');
+    showMsg('metaMsg','Metadata saved');
+  } catch(e) { showMsg('metaMsg','Error: '+e.message,true); }
+}
+
+async function pdfMark() {
+  const inp = document.getElementById('markInput');
+  if (!inp.files[0]) { showMsg('markMsg','Select a PDF file',true); return; }
+  const text = document.getElementById('markText').value || 'CONFIDENTIAL';
+  showMsg('markMsg','Adding watermark…');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    const font = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+    const size = parseInt(document.getElementById('markSize').value) || 48;
+    const opacity = parseFloat(document.getElementById('markOpacity').value) || 0.15;
+    doc.getPages().forEach(page => {
+      const { width, height } = page.getSize();
+      const tw = font.widthOfTextAtSize(text, size);
+      page.drawText(text, {
+        x: (width - tw) / 2, y: (height - size) / 2,
+        size, font, opacity,
+        color: PDFLib.rgb(0,0,0),
+        rotate: PDFLib.degrees(45)
+      });
+    });
+    const bytes = await doc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'watermarked.pdf');
+    showMsg('markMsg','Watermark added');
+  } catch(e) { showMsg('markMsg','Error: '+e.message,true); }
+}
+
+async function pdfExtract() {
+  const inp = document.getElementById('extractInput');
+  if (!inp.files[0]) { showMsg('extractMsg','Select a PDF file',true); return; }
+  showMsg('extractMsg','Extracting…');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    let result = `PDF has ${doc.getPageCount()} pages\n`;
+    result += `Title: ${doc.getTitle() || 'N/A'}\n`;
+    result += `Author: ${doc.getAuthor() || 'N/A'}\n`;
+    result += `Subject: ${doc.getSubject() || 'N/A'}\n\n`;
+    try {
+      const form = doc.getForm();
+      const fields = form.getFields();
+      if (fields.length) {
+        result += `Form fields (${fields.length}):\n`;
+        fields.forEach(f => {
+          result += `  ${f.getName()}: `;
+          try { result += f.getText ? f.getText() : '[non-text field]'; } catch{ result += '[error]'; }
+          result += '\n';
+        });
+      } else { result += 'No form fields found.\n'; }
+    } catch { result += 'No form fields.\n'; }
+    result += '\nNote: Full text extraction requires PDF.js. This tool extracts form field values and metadata only.';
+    document.getElementById('extractOutput').value = result;
+    document.getElementById('extractMsg').style.display = 'none';
+  } catch(e) { showMsg('extractMsg','Error: '+e.message,true); }
+}
+
+async function pdfFlat() {
+  const inp = document.getElementById('flatInput');
+  if (!inp.files[0]) { showMsg('flatMsg','Select a PDF file',true); return; }
+  showMsg('flatMsg','Flattening…');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    try { doc.getForm().flatten(); } catch(e) { /* no form */ }
+    const bytes = await doc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'flattened.pdf');
+    showMsg('flatMsg','Form flattened and saved');
+  } catch(e) { showMsg('flatMsg','Error: '+e.message,true); }
+}
+
+async function pdfSign() {
+  const pdfInp = document.getElementById('signPdfInput');
+  const imgInp = document.getElementById('signImgInput');
+  if (!pdfInp.files[0]) { showMsg('signMsg','Select a PDF file',true); return; }
+  if (!imgInp.files[0]) { showMsg('signMsg','Select a signature image',true); return; }
+  showMsg('signMsg','Adding signature…');
+  try {
+    const pdfBuf = await pdfInp.files[0].arrayBuffer();
+    const imgBuf = await imgInp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(pdfBuf, {ignoreEncryption:true});
+    let img;
+    if (imgInp.files[0].type === 'image/png') img = await doc.embedPng(imgBuf);
+    else img = await doc.embedJpg(imgBuf);
+    const pageNum = Math.max(0, (parseInt(document.getElementById('signPage').value)||1)-1);
+    const pages = doc.getPages();
+    if (pageNum >= pages.length) { showMsg('signMsg','Page number exceeds document length',true); return; }
+    const page = pages[pageNum];
+    const { height } = page.getSize();
+    const x = parseFloat(document.getElementById('signX').value) || 50;
+    const y = parseFloat(document.getElementById('signY').value) || 50;
+    const w = parseFloat(document.getElementById('signW').value) || 150;
+    const aspect = img.height / img.width;
+    page.drawImage(img, { x, y: height - y - w*aspect, width: w, height: w*aspect });
+    const bytes = await doc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'signed.pdf');
+    showMsg('signMsg','Signature added');
+  } catch(e) { showMsg('signMsg','Error: '+e.message,true); }
+}
+
+async function pdfCrop() {
+  const inp = document.getElementById('cropPdfInput');
+  if (!inp.files[0]) { showMsg('cropPdfMsg','Select a PDF file',true); return; }
+  showMsg('cropPdfMsg','Cropping…');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    const top = parseFloat(document.getElementById('cropTop').value)||0;
+    const right = parseFloat(document.getElementById('cropRight').value)||0;
+    const bottom = parseFloat(document.getElementById('cropBottom').value)||0;
+    const left = parseFloat(document.getElementById('cropLeft').value)||0;
+    doc.getPages().forEach(page => {
+      const mb = page.getMediaBox();
+      page.setCropBox(mb.x+left, mb.y+bottom, mb.width-left-right, mb.height-top-bottom);
+    });
+    const bytes = await doc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'cropped.pdf');
+    showMsg('cropPdfMsg','Crop applied to all pages');
+  } catch(e) { showMsg('cropPdfMsg','Error: '+e.message,true); }
+}
+
+async function pdfInvert() {
+  const inp = document.getElementById('invPdfInput');
+  if (!inp.files[0]) { showMsg('invPdfMsg','Select a PDF file',true); return; }
+  showMsg('invPdfMsg','⚠ True color inversion requires PDF.js (not available here). Saving original PDF. Use your PDF viewer's dark mode or accessibility inversion for visual inversion.');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    doc.setCreator('smpl. invert-requested');
+    const bytes = await doc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'invert_note.pdf');
+  } catch(e) { showMsg('invPdfMsg','Error: '+e.message,true); }
+}
+
+async function pdfZip() {
+  const inp = document.getElementById('zipPdfInput');
+  if (!inp.files.length) { showMsg('zipPdfMsg','Select PDF files',true); return; }
+  const zipName = document.getElementById('zipPdfName').value || 'pdfs.zip';
+  showMsg('zipPdfMsg','Zipping…');
+  try {
+    const zip = new JSZip();
+    for (const file of inp.files) {
+      const buf = await file.arrayBuffer();
+      zip.file(file.name, buf);
+    }
+    const blob = await zip.generateAsync({type:'blob', compression:'DEFLATE', compressionOptions:{level:6}});
+    download(blob, zipName.endsWith('.zip') ? zipName : zipName+'.zip');
+    showMsg('zipPdfMsg',`Zipped ${inp.files.length} file(s) → ${(blob.size/1024).toFixed(1)}KB`);
+  } catch(e) { showMsg('zipPdfMsg','Error: '+e.message,true); }
+}
+
+let orderPages = [];
+let orderDragIdx = null;
+
+async function pdfOrderLoad() {
+  const inp = document.getElementById('orderInput');
+  if (!inp.files[0]) return;
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    orderPages = Array.from({length: doc.getPageCount()}, (_,i) => i);
+    renderOrderList();
+    document.getElementById('orderSaveBtn').style.display = '';
+    showMsg('orderMsg', `Loaded ${doc.getPageCount()} pages. Drag to reorder.`);
+  } catch(e) { showMsg('orderMsg','Error: '+e.message,true); }
+}
+
+function renderOrderList() {
+  document.getElementById('orderList').innerHTML = orderPages.map((i,idx) =>
+    `<div class="smpl-card mb-1 flex items-center gap-3 cursor-move" draggable="true" data-idx="${idx}" ondragstart="orderDragStart(event)" ondragover="orderDragOver(event)" ondrop="orderDrop(event)"><span class="opacity-40 text-xs">⠿</span><span class="text-sm mono">Page ${i+1}</span></div>`
+  ).join('');
+}
+
+function orderDragStart(e) { orderDragIdx = parseInt(e.currentTarget.dataset.idx); e.dataTransfer.effectAllowed='move'; }
+function orderDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect='move'; }
+function orderDrop(e) {
+  e.preventDefault();
+  const to = parseInt(e.currentTarget.dataset.idx);
+  if (orderDragIdx === null || orderDragIdx === to) return;
+  const item = orderPages.splice(orderDragIdx, 1)[0];
+  orderPages.splice(to, 0, item);
+  renderOrderList();
+  orderDragIdx = null;
+}
+
+async function pdfOrderSave() {
+  const inp = document.getElementById('orderInput');
+  if (!inp.files[0] || !orderPages.length) { showMsg('orderMsg','Load a PDF first',true); return; }
+  showMsg('orderMsg','Reordering…');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const src = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    const newDoc = await PDFLib.PDFDocument.create();
+    const pages = await newDoc.copyPages(src, orderPages);
+    pages.forEach(p => newDoc.addPage(p));
+    const bytes = await newDoc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'reordered.pdf');
+    showMsg('orderMsg','Reordered PDF saved');
+  } catch(e) { showMsg('orderMsg','Error: '+e.message,true); }
+}
+
+async function pdfBook() {
+  const inp = document.getElementById('bookInput');
+  if (!inp.files[0]) { showMsg('bookMsg','Select a PDF file',true); return; }
+  showMsg('bookMsg','Creating booklet…');
+  try {
+    const buf = await inp.files[0].arrayBuffer();
+    const src = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
+    let n = src.getPageCount();
+    // Pad to multiple of 4
+    const padded = Math.ceil(n/4)*4;
+    const order = [];
+    for (let i=0; i<padded/2; i+=2) {
+      order.push(padded-1-i); // back right
+      order.push(i);           // front left
+      order.push(i+1);         // front right
+      order.push(padded-2-i);  // back left
+    }
+    const newDoc = await PDFLib.PDFDocument.create();
+    for (const idx of order) {
+      if (idx < n) {
+        const [page] = await newDoc.copyPages(src, [idx]);
+        newDoc.addPage(page);
+      } else {
+        // blank page
+        const { width, height } = src.getPage(0).getSize();
+        newDoc.addPage([width, height]);
+      }
+    }
+    const bytes = await newDoc.save();
+    download(new Blob([bytes],{type:'application/pdf'}), 'booklet.pdf');
+    showMsg('bookMsg',`Booklet created (${newDoc.getPageCount()} pages, print 2-up)`);
+  } catch(e) { showMsg('bookMsg','Error: '+e.message,true); }
+}
+
+// ============================================================
+// IMAGE TOOL FUNCTIONS
+// ============================================================
+let resizeAspect = 1;
+
+function imgResizePreview() {
+  loadImgFile('resizeInput').then(img => {
+    resizeAspect = img.naturalWidth / img.naturalHeight;
+    document.getElementById('resizeW').value = img.naturalWidth;
+    document.getElementById('resizeH').value = img.naturalHeight;
+    document.getElementById('resizeInfo').textContent = `Original: ${img.naturalWidth} x ${img.naturalHeight}`;
+  }).catch(e => showMsg('resizeMsg', e, true));
+}
+
+function resizeLockAspect(changed) {
+  if (!document.getElementById('resizeLock').checked) return;
+  if (changed === 'w') {
+    const w = parseInt(document.getElementById('resizeW').value);
+    if (w) document.getElementById('resizeH').value = Math.round(w / resizeAspect);
+  } else {
+    const h = parseInt(document.getElementById('resizeH').value);
+    if (h) document.getElementById('resizeW').value = Math.round(h * resizeAspect);
+  }
+}
+
+async function imgResize() {
+  try {
+    const img = await loadImgFile('resizeInput');
+    const w = parseInt(document.getElementById('resizeW').value) || img.naturalWidth;
+    const h = parseInt(document.getElementById('resizeH').value) || img.naturalHeight;
+    const c = mkCanvas(w, h);
+    c.getContext('2d').drawImage(img, 0, 0, w, h);
+    const blob = await canvasToBlob(c);
+    download(blob, 'resized.png');
+    showMsg('resizeMsg', `Resized to ${w}x${h}`);
+  } catch(e) { showMsg('resizeMsg', e, true); }
+}
+
+function imgCropPreview() {
+  loadImgFile('cropImgInput').then(img => {
+    document.getElementById('cropImgInfo').textContent = `Image: ${img.naturalWidth} x ${img.naturalHeight}`;
+    document.getElementById('cropW').value = img.naturalWidth;
+    document.getElementById('cropH').value = img.naturalHeight;
+  }).catch(e => showMsg('cropImgMsg', e, true));
+}
+
+async function imgCrop() {
+  try {
+    const img = await loadImgFile('cropImgInput');
+    const x = parseInt(document.getElementById('cropX').value)||0;
+    const y = parseInt(document.getElementById('cropY').value)||0;
+    const w = parseInt(document.getElementById('cropW').value)||img.naturalWidth;
+    const h = parseInt(document.getElementById('cropH').value)||img.naturalHeight;
+    const c = mkCanvas(w, h);
+    c.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
+    const blob = await canvasToBlob(c);
+    download(blob, 'cropped.png');
+    showMsg('cropImgMsg', `Cropped to ${w}x${h}`);
+  } catch(e) { showMsg('cropImgMsg', e, true); }
+}
+
+async function imgStrip() {
+  try {
+    const img = await loadImgFile('stripInput');
+    const c = mkCanvas(img.naturalWidth, img.naturalHeight);
+    c.getContext('2d').drawImage(img, 0, 0);
+    const blob = await canvasToBlob(c);
+    download(blob, 'stripped.png');
+    showMsg('stripMsg', 'EXIF data removed (canvas re-export strips all metadata)');
+  } catch(e) { showMsg('stripMsg', e, true); }
+}
+
+async function imgGrid() {
+  try {
+    const img = await loadImgFile('gridInput');
+    const size = Math.min(img.naturalWidth, img.naturalHeight);
+    const ox = (img.naturalWidth - size) / 2;
+    const oy = (img.naturalHeight - size) / 2;
+    const cell = Math.floor(size / 3);
+    const zip = new JSZip();
+    const promises = [];
+    for (let row=0; row<3; row++) {
+      for (let col=0; col<3; col++) {
+        const c = mkCanvas(cell, cell);
+        c.getContext('2d').drawImage(img, ox + col*cell, oy + row*cell, cell, cell, 0, 0, cell, cell);
+        promises.push(canvasToBlob(c).then(blob => {
+          return blob.arrayBuffer().then(buf => zip.file(`cell_${row+1}_${col+1}.png`, buf));
+        }));
+      }
+    }
+    await Promise.all(promises);
+    const zipBlob = await zip.generateAsync({type:'blob'});
+    download(zipBlob, 'grid_cells.zip');
+    showMsg('gridMsg', `Grid split into 9 cells (${cell}x${cell} each)`);
+  } catch(e) { showMsg('gridMsg', e, true); }
+}
+
+async function imgCircle() {
+  try {
+    const img = await loadImgFile('circleInput');
+    const size = Math.min(img.naturalWidth, img.naturalHeight);
+    const c = mkCanvas(size, size);
+    const ctx = c.getContext('2d');
+    ctx.beginPath();
+    ctx.arc(size/2, size/2, size/2, 0, Math.PI*2);
+    ctx.clip();
+    ctx.drawImage(img, -(img.naturalWidth-size)/2, -(img.naturalHeight-size)/2);
+    const blob = await canvasToBlob(c);
+    download(blob, 'circle.png');
+    showMsg('circleMsg', `Circular crop: ${size}x${size}`);
+  } catch(e) { showMsg('circleMsg', e, true); }
+}
+
+async function imgGray() {
+  try {
+    const img = await loadImgFile('grayImgInput');
+    const c = mkCanvas(img.naturalWidth, img.naturalHeight);
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const id = ctx.getImageData(0, 0, c.width, c.height);
+    const d = id.data;
+    for (let i=0; i<d.length; i+=4) {
+      const v = Math.round(0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2]);
+      d[i] = d[i+1] = d[i+2] = v;
+    }
+    ctx.putImageData(id, 0, 0);
+    const blob = await canvasToBlob(c);
+    download(blob, 'grayscale.png');
+    showMsg('grayImgMsg', 'Converted to grayscale');
+  } catch(e) { showMsg('grayImgMsg', e, true); }
+}
+
+async function imgColor() {
+  try {
+    const img = await loadImgFile('colorInput');
+    const c = mkCanvas(img.naturalWidth, img.naturalHeight);
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const id = ctx.getImageData(0, 0, c.width, c.height);
+    const d = id.data;
+    const buckets = {};
+    for (let i=0; i<d.length; i+=40) {
+      const r = d[i] >> 3, g = d[i+1] >> 3, b = d[i+2] >> 3;
+      const key = (r<<10)|(g<<5)|b;
+      buckets[key] = (buckets[key]||0) + 1;
+    }
+    const total = Object.values(buckets).reduce((a,b)=>a+b,0);
+    const sorted = Object.entries(buckets).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    const html = sorted.map(([key,cnt]) => {
+      const r=((key>>10)&31)<<3, g=((key>>5)&31)<<3, b=(key&31)<<3;
+      const hex = [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+      const pct = (cnt/total*100).toFixed(1);
+      return `<div class="flex items-center gap-3 mb-2"><div style="width:40px;height:24px;background:#${hex};border:1px solid #F3F4F6" class="dark:border-[#262626] flex-shrink-0"></div><span class="mono text-sm">#${hex.toUpperCase()}</span><span class="text-xs opacity-50">${pct}%</span></div>`;
+    }).join('');
+    document.getElementById('colorOutput').innerHTML = html || '<p class="text-sm opacity-50">No colors found</p>';
+  } catch(e) { showMsg('colorMsg', e, true); }
+}
+
+async function imgBase64() {
+  const inp = document.getElementById('base64ImgInput');
+  if (!inp.files[0]) { showMsg('base64ImgMsg','Select an image file',true); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    const base64 = dataUrl.split(',')[1];
+    document.getElementById('base64ImgOutput').value = dataUrl;
+    document.getElementById('base64Raw').value = base64;
+    showMsg('base64ImgMsg', `Data URI length: ${dataUrl.length} chars`);
+  };
+  reader.readAsDataURL(inp.files[0]);
+}
+
+async function imgFav() {
+  try {
+    const img = await loadImgFile('favInput');
+    const zip = new JSZip();
+    const sizes = [16, 32, 48, 180];
+    await Promise.all(sizes.map(async sz => {
+      const c = mkCanvas(sz, sz);
+      c.getContext('2d').drawImage(img, 0, 0, sz, sz);
+      const blob = await canvasToBlob(c, 'image/png');
+      const buf = await blob.arrayBuffer();
+      zip.file(`favicon-${sz}x${sz}.png`, buf);
+    }));
+    const zipBlob = await zip.generateAsync({type:'blob'});
+    download(zipBlob, 'favicons.zip');
+    showMsg('favMsg', `Generated ${sizes.length} favicon sizes: ${sizes.join(', ')}`);
+  } catch(e) { showMsg('favMsg', e, true); }
+}
+
+async function imgWebp() {
+  try {
+    const img = await loadImgFile('webpInput');
+    const quality = parseFloat(document.getElementById('webpQuality').value) || 0.85;
+    const c = mkCanvas(img.naturalWidth, img.naturalHeight);
+    c.getContext('2d').drawImage(img, 0, 0);
+    const blob = await canvasToBlob(c, 'image/webp', quality);
+    download(blob, 'output.webp');
+    showMsg('webpMsg', `Saved as WebP (quality: ${Math.round(quality*100)}%, size: ${(blob.size/1024).toFixed(1)}KB)`);
+  } catch(e) { showMsg('webpMsg', e, true); }
+}
+
+async function imgBlur() {
+  try {
+    const img = await loadImgFile('blurInput');
+    const radius = parseInt(document.getElementById('blurRadius').value) || 5;
+    const c = mkCanvas(img.naturalWidth, img.naturalHeight);
+    const ctx = c.getContext('2d');
+    ctx.filter = `blur(${radius}px)`;
+    ctx.drawImage(img, 0, 0);
+    ctx.filter = 'none';
+    const blob = await canvasToBlob(c);
+    download(blob, 'blurred.png');
+    showMsg('blurMsg', `Blur radius ${radius}px applied`);
+  } catch(e) { showMsg('blurMsg', e, true); }
+}
+
+async function imgInvert() {
+  try {
+    const img = await loadImgFile('invImgInput');
+    const c = mkCanvas(img.naturalWidth, img.naturalHeight);
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const id = ctx.getImageData(0, 0, c.width, c.height);
+    const d = id.data;
+    for (let i=0; i<d.length; i+=4) { d[i]=255-d[i]; d[i+1]=255-d[i+1]; d[i+2]=255-d[i+2]; }
+    ctx.putImageData(id, 0, 0);
+    const blob = await canvasToBlob(c);
+    download(blob, 'inverted.png');
+    showMsg('invImgMsg', 'Colors inverted');
+  } catch(e) { showMsg('invImgMsg', e, true); }
+}
+
+async function imgBright() {
+  try {
+    const img = await loadImgFile('brightInput');
+    const brightness = parseInt(document.getElementById('brightVal').value) || 0;
+    const contrast = parseInt(document.getElementById('contrastVal').value) || 0;
+    const c = mkCanvas(img.naturalWidth, img.naturalHeight);
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const id = ctx.getImageData(0, 0, c.width, c.height);
+    const d = id.data;
+    const factor = (259*(contrast+255))/(255*(259-contrast));
+    for (let i=0; i<d.length; i+=4) {
+      d[i]   = Math.min(255,Math.max(0, factor*(d[i]  -128)+128+brightness));
+      d[i+1] = Math.min(255,Math.max(0, factor*(d[i+1]-128)+128+brightness));
+      d[i+2] = Math.min(255,Math.max(0, factor*(d[i+2]-128)+128+brightness));
+    }
+    ctx.putImageData(id, 0, 0);
+    const blob = await canvasToBlob(c);
+    download(blob, 'adjusted.png');
+    showMsg('brightMsg', `B:${brightness} C:${contrast} applied`);
+  } catch(e) { showMsg('brightMsg', e, true); }
+}
+
+function svgLoadFile() {
+  const inp = document.getElementById('svgFileInput');
+  if (!inp.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => { document.getElementById('svgTextarea').value = e.target.result; };
+  reader.readAsText(inp.files[0]);
+}
+
+async function imgSvg() {
+  const svgText = document.getElementById('svgTextarea').value.trim();
+  if (!svgText) { showMsg('svgMsg','Enter or load SVG content',true); return; }
+  const scale = parseFloat(document.getElementById('svgScale').value)||1;
+  try {
+    const blob = new Blob([svgText], {type:'image/svg+xml'});
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = async () => {
+      URL.revokeObjectURL(url);
+      const w = Math.round((img.naturalWidth || 400) * scale);
+      const h = Math.round((img.naturalHeight || 400) * scale);
+      const c = mkCanvas(w, h);
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const pngBlob = await canvasToBlob(c);
+      download(pngBlob, 'svg_export.png');
+      showMsg('svgMsg', `Exported at ${w}x${h} (${scale}x scale)`);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); showMsg('svgMsg','Invalid SVG',true); };
+    img.src = url;
+  } catch(e) { showMsg('svgMsg', e.message, true); }
+}
+
+async function imgFlip(dir) {
+  try {
+    const img = await loadImgFile('flipInput');
+    const c = mkCanvas(img.naturalWidth, img.naturalHeight);
+    const ctx = c.getContext('2d');
+    if (dir === 'h') { ctx.translate(img.naturalWidth, 0); ctx.scale(-1, 1); }
+    else { ctx.translate(0, img.naturalHeight); ctx.scale(1, -1); }
+    ctx.drawImage(img, 0, 0);
+    const blob = await canvasToBlob(c);
+    download(blob, `flipped_${dir}.png`);
+    showMsg('flipMsg', `Flipped ${dir === 'h' ? 'horizontally' : 'vertically'}`);
+  } catch(e) { showMsg('flipMsg', e, true); }
+}
+
+// ============================================================
+// DEV TOOL FUNCTIONS
+// ============================================================
+function convertJsonCsv() {
+  try {
+    const input = document.getElementById('jsonCsvInput').value.trim();
+    const data = JSON.parse(input);
+    if (!Array.isArray(data)) { showMsg('jsonCsvMsg','Input must be a JSON array',true); return; }
+    function flattenObj(obj, prefix) {
+      const result = {};
+      prefix = prefix || '';
+      for (const [k,v] of Object.entries(obj)) {
+        const key = prefix ? `${prefix}.${k}` : k;
+        if (v && typeof v === 'object' && !Array.isArray(v)) {
+          Object.assign(result, flattenObj(v, key));
+        } else { result[key] = v === null ? '' : String(v); }
+      }
+      return result;
+    }
+    const flat = data.map(row => typeof row === 'object' && row ? flattenObj(row) : {value: String(row)});
+    const keys = [...new Set(flat.flatMap(r => Object.keys(r)))];
+    const csvRows = [keys.map(k => `"${k.replace(/"/g,'""')}"`).join(',')];
+    flat.forEach(row => {
+      csvRows.push(keys.map(k => {
+        const v = String(row[k] !== undefined ? row[k] : '');
+        return v.includes(',') || v.includes('"') || v.includes('\n') ? `"${v.replace(/"/g,'""')}"` : v;
+      }).join(','));
+    });
+    document.getElementById('jsonCsvOutput').value = csvRows.join('\n');
+    showMsg('jsonCsvMsg', `${data.length} row(s), ${keys.length} column(s)`);
+  } catch(e) { showMsg('jsonCsvMsg','Error: '+e.message,true); }
+}
+
+let qrInstance = null;
+function genQR() {
+  const text = document.getElementById('qrInput').value.trim();
+  if (!text) { showMsg('qrMsg','Enter text or URL',true); return; }
+  const size = parseInt(document.getElementById('qrSize').value) || 256;
+  const ec = document.getElementById('qrEC').value || 'M';
+  const div = document.getElementById('qrOutput');
+  div.innerHTML = '';
+  try {
+    qrInstance = new QRCode(div, { text, width:size, height:size, correctLevel: QRCode.CorrectLevel[ec] });
+    document.getElementById('qrDlBtn').style.display = '';
+  } catch(e) { showMsg('qrMsg','QR Error: '+e.message,true); }
+}
+function dlQR() {
+  const img = document.querySelector('#qrOutput img');
+  if (img) { const a=document.createElement('a'); a.href=img.src; a.download='qrcode.png'; a.click(); }
+}
+
+function genPass() {
+  const len = parseInt(document.getElementById('passLen').value) || 16;
+  let chars = '';
+  if (document.getElementById('passUpper').checked) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  if (document.getElementById('passLower').checked) chars += 'abcdefghijklmnopqrstuvwxyz';
+  if (document.getElementById('passNums').checked)  chars += '0123456789';
+  if (document.getElementById('passSyms').checked)  chars += '!@#$%^&*()-_=+[]{}|;:,.<>?';
+  if (!chars) { showMsg('passMsg','Select at least one character type',true); return; }
+  const arr = new Uint32Array(len);
+  crypto.getRandomValues(arr);
+  const pass = Array.from(arr).map(v => chars[v % chars.length]).join('');
+  document.getElementById('passOutput').textContent = pass;
+  document.getElementById('passCopyBtn').style.display = '';
+}
+
+function genWifiQR() {
+  const ssid = document.getElementById('wifiSsid').value;
+  const pass = document.getElementById('wifiPass').value;
+  const sec = document.getElementById('wifiSec').value;
+  const hidden = document.getElementById('wifiHidden').checked;
+  const str = `WIFI:T:${sec};S:${ssid};P:${pass};H:${hidden};;`;
+  const div = document.getElementById('wifiQrOutput');
+  div.innerHTML = '';
+  try {
+    new QRCode(div, { text: str, width:200, height:200, correctLevel: QRCode.CorrectLevel.M });
+    document.getElementById('wifiDlBtn').style.display = '';
+  } catch(e) { showMsg('wifiMsg','QR Error: '+e.message,true); }
+}
+function dlWifiQR() {
+  const img = document.querySelector('#wifiQrOutput img');
+  if (img) { const a=document.createElement('a'); a.href=img.src; a.download='wifi_qr.png'; a.click(); }
+}
+
+function fixJson() {
+  try {
+    const parsed = JSON.parse(document.getElementById('jsonFixInput').value);
+    document.getElementById('jsonFixOutput').value = JSON.stringify(parsed, null, 2);
+    showMsg('jsonFixMsg', 'Valid JSON — formatted');
+  } catch(e) { showMsg('jsonFixMsg','JSON Error: '+e.message,true); document.getElementById('jsonFixOutput').value=''; }
+}
+
+function minifyJs() {
+  let code = document.getElementById('jsMinInput').value;
+  const orig = code.length;
+  // Remove block comments
+  code = code.replace(/\/\*[\s\S]*?\*\//g, '');
+  // Remove single line comments (simple heuristic — may incorrectly strip // inside strings)
+  code = code.replace(/(?<![:\/'"])(\/\/[^\n]*)/g, '');
+  // Collapse whitespace (not inside strings - simplified)
+  code = code.replace(/\n+/g, '\n').replace(/[ \t]+/g, ' ');
+  code = code.split('\n').map(l => l.trim()).filter(l => l).join('\n');
+  document.getElementById('jsMinOutput').value = code.trim();
+  const ratio = ((1 - code.length/orig)*100).toFixed(1);
+  showMsg('jsMinMsg', `${orig} → ${code.length} chars (${ratio}% reduction)`);
+}
+
+function fixSql() {
+  const keywords = ['SELECT','FROM','WHERE','JOIN','LEFT JOIN','RIGHT JOIN','INNER JOIN','FULL JOIN',
+    'ON','GROUP BY','ORDER BY','HAVING','LIMIT','OFFSET','INSERT INTO','VALUES','UPDATE','SET',
+    'DELETE FROM','CREATE TABLE','DROP TABLE','ALTER TABLE','AND','OR','NOT','IN','IS NULL',
+    'IS NOT NULL','DISTINCT','AS','COUNT','SUM','AVG','MAX','MIN','UNION ALL','UNION','CASE',
+    'WHEN','THEN','ELSE','END','BETWEEN','LIKE','EXISTS','WITH','RETURNING'];
+  let sql = document.getElementById('sqlFixInput').value;
+  // Replace keywords case-insensitively
+  keywords.forEach(kw => {
+    const re = new RegExp('\\b' + kw.replace(/ /g,'\\s+') + '\\b', 'gi');
+    sql = sql.replace(re, kw);
+  });
+  const newlineBefore = ['SELECT','FROM','WHERE','LEFT JOIN','RIGHT JOIN','INNER JOIN','FULL JOIN',
+    'JOIN','GROUP BY','ORDER BY','HAVING','LIMIT','OFFSET','UNION ALL','UNION'];
+  newlineBefore.forEach(kw => {
+    const re = new RegExp('\\b' + kw.replace(/ /g,'\\s+') + '\\b', 'g');
+    sql = sql.replace(re, '\n' + kw);
+  });
+  sql = sql.split('\n').map(l => l.trim()).filter(l => l).join('\n');
+  document.getElementById('sqlFixOutput').value = sql;
+  showMsg('sqlFixMsg','SQL formatted');
+}
+
+function genSlugLive() {
+  const val = document.getElementById('slugGenInput').value;
+  const slug = val.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9\s-]/g,'').trim()
+    .replace(/\s+/g,'-').replace(/-+/g,'-');
+  document.getElementById('slugGenOutput').value = slug;
+}
+
+function hexToRgb() {
+  let hex = document.getElementById('hexInput').value.replace('#','').trim();
+  if (hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  if (hex.length!==6) return;
+  const r=parseInt(hex.slice(0,2),16), g=parseInt(hex.slice(2,4),16), b=parseInt(hex.slice(4,6),16);
+  document.getElementById('hexPreview').style.background = `#${hex}`;
+  document.getElementById('hexResult').textContent = `RGB(${r}, ${g}, ${b}) — HSL: ${rgbToHslStr(r,g,b)} — #${hex.toUpperCase()}`;
+}
+function rgbToHex() {
+  const r=parseInt(document.getElementById('rgbR').value)||0, g=parseInt(document.getElementById('rgbG').value)||0, b=parseInt(document.getElementById('rgbB').value)||0;
+  const hex=[r,g,b].map(v=>Math.min(255,Math.max(0,v)).toString(16).padStart(2,'0')).join('');
+  document.getElementById('rgbResult').textContent = `#${hex.toUpperCase()} — HSL: ${rgbToHslStr(r,g,b)}`;
+  document.getElementById('rgbPreview').style.background = `#${hex}`;
+}
+function rgbToHslStr(r,g,b) {
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h,s,l=(max+min)/2;
+  if (max===min) { h=s=0; } else {
+    const d=max-min;
+    s=l>0.5?d/(2-max-min):d/(max+min);
+    switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;default:h=(r-g)/d+4;}
+    h/=6;
+  }
+  return `${Math.round(h*360)}°, ${Math.round(s*100)}%, ${Math.round(l*100)}%`;
+}
+
+function b64Encode() {
+  try {
+    document.getElementById('b64TxtOutput').value = btoa(unescape(encodeURIComponent(document.getElementById('b64TxtInput').value)));
+  } catch(e) { showMsg('b64TxtMsg', e.message, true); }
+}
+function b64Decode() {
+  try {
+    document.getElementById('b64TxtOutput').value = decodeURIComponent(escape(atob(document.getElementById('b64TxtInput').value)));
+  } catch(e) { showMsg('b64TxtMsg', 'Invalid Base64 input', true); }
+}
+
+function runDiff() {
+  const aLines = document.getElementById('diffA').value.split('\n');
+  const bLines = document.getElementById('diffB').value.split('\n');
+  const m=aLines.length, n=bLines.length;
+  const dp=Array.from({length:m+1},()=>new Array(n+1).fill(0));
+  for(let i=m-1;i>=0;i--) for(let j=n-1;j>=0;j--) {
+    if(aLines[i]===bLines[j]) dp[i][j]=dp[i+1][j+1]+1;
+    else dp[i][j]=Math.max(dp[i+1][j], dp[i][j+1]);
+  }
+  let i=0,j=0; const result=[];
+  while(i<m||j<n) {
+    if(i<m&&j<n&&aLines[i]===bLines[j]) { result.push({t:'eq',v:aLines[i]}); i++;j++; }
+    else if(j<n&&(i>=m||dp[i][j+1]>=dp[i+1][j])) { result.push({t:'add',v:bLines[j]}); j++; }
+    else { result.push({t:'del',v:aLines[i]}); i++; }
+  }
+  document.getElementById('diffOutput').innerHTML = result.map(r=>
+    r.t==='add'?`<span class="diff-add">+ ${escHtml(r.v)}</span>`:
+    r.t==='del'?`<span class="diff-del">- ${escHtml(r.v)}</span>`:
+    `<span class="diff-eq">  ${escHtml(r.v)}</span>`
+  ).join('');
+}
+
+async function genSha() {
+  const text = document.getElementById('shaInput').value;
+  if (!text) { showMsg('shaMsg','Enter text to hash',true); return; }
+  const buf = new TextEncoder().encode(text);
+  const algos = [['SHA-1','SHA-1'],['SHA-256','SHA-256'],['SHA-512','SHA-512']];
+  try {
+    const results = await Promise.all(algos.map(([name,algo])=>
+      crypto.subtle.digest(algo,buf).then(h=>({name,hash:Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('')}))
+    ));
+    document.getElementById('shaOutput').innerHTML = results.map(r=>
+      `<div class="mb-3"><div class="text-xs opacity-50 mb-1">${r.name}</div><div class="mono text-xs break-all p-3 border border-[#F3F4F6] dark:border-[#262626] flex justify-between gap-2"><span class="break-all">${r.hash}</span><button class="smpl-btn-outline text-xs flex-shrink-0" onclick="copyToClipboard('${r.hash}')">Copy</button></div></div>`
+    ).join('');
+  } catch(e) { showMsg('shaMsg','Error: '+e.message,true); }
+}
+
+function updateGlass() {
+  const blur=document.getElementById('glassBlur')?document.getElementById('glassBlur').value:10;
+  const bgOp=document.getElementById('glassBgOp')?document.getElementById('glassBgOp').value:0.2;
+  const bdOp=document.getElementById('glassBdOp')?document.getElementById('glassBdOp').value:0.3;
+  const tint=document.getElementById('glassTint')?document.getElementById('glassTint').value:'#ffffff';
+  const rad=document.getElementById('glassRad')?document.getElementById('glassRad').value:12;
+  if(document.getElementById('glassBlurVal')) document.getElementById('glassBlurVal').textContent=blur;
+  if(document.getElementById('glassBgOpVal')) document.getElementById('glassBgOpVal').textContent=bgOp;
+  if(document.getElementById('glassBdOpVal')) document.getElementById('glassBdOpVal').textContent=bdOp;
+  if(document.getElementById('glassRadVal')) document.getElementById('glassRadVal').textContent=rad;
+  const r=parseInt(tint.slice(1,3),16)||255, g=parseInt(tint.slice(3,5),16)||255, b=parseInt(tint.slice(5,7),16)||255;
+  const css = `backdrop-filter: blur(${blur}px);\n-webkit-backdrop-filter: blur(${blur}px);\nbackground: rgba(${r}, ${g}, ${b}, ${bgOp});\nborder: 1px solid rgba(${r}, ${g}, ${b}, ${bdOp});\nborder-radius: ${rad}px;`;
+  if(document.getElementById('glassCssOutput')) document.getElementById('glassCssOutput').value = `.glass {\n  ${css.replace(/\n/g,'\n  ')}\n}`;
+  const preview = document.getElementById('glassPreview');
+  if(preview) { preview.style.cssText = `backdrop-filter:blur(${blur}px);-webkit-backdrop-filter:blur(${blur}px);background:rgba(${r},${g},${b},${bgOp});border:1px solid rgba(${r},${g},${b},${bdOp});border-radius:${rad}px;width:160px;height:100px;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;font-family:Inter,sans-serif;`; }
+}
+
+function stripHtml() {
+  const html = document.getElementById('htmlStripInput').value;
+  try {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    document.getElementById('htmlStripOutput').value = doc.body.textContent || '';
+    showMsg('htmlStripMsg','HTML stripped');
+  } catch(e) { showMsg('htmlStripMsg','Error: '+e.message,true); }
+}
+
+// Simplified YAML parser — supports key:value pairs, nested objects (indentation),
+// arrays (dash notation), basic types (bool/null/number/string). Does not support
+// anchors/aliases, multi-line strings, inline arrays/objects, or quoted keys with colons.
+function parseYAML(yaml) {
+  const lines = yaml.split('\n');
+  function parseValue(v) {
+    v = v.trim();
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+    if (v === 'null' || v === '~') return null;
+    if ((v.startsWith("'")&&v.endsWith("'"))||(v.startsWith('"')&&v.endsWith('"'))) return v.slice(1,-1);
+    if (!isNaN(v) && v !== '') return Number(v);
+    return v;
+  }
+  const result = {};
+  const stack = [{obj:result, indent:-1, lastKey:null}];
+  for (let line of lines) {
+    if (!line.trim() || line.trim().startsWith('#')) continue;
+    const indent = line.match(/^ */)[0].length;
+    const trimmed = line.trim();
+    while (stack.length > 1 && stack[stack.length-1].indent >= indent) stack.pop();
+    const parent = stack[stack.length-1];
+    if (trimmed.startsWith('- ')) {
+      const val = trimmed.slice(2).trim();
+      if (!Array.isArray(parent.obj[parent.lastKey])) parent.obj[parent.lastKey] = [];
+      parent.obj[parent.lastKey].push(parseValue(val));
+    } else if (trimmed.includes(':')) {
+      const colonIdx = trimmed.indexOf(':');
+      const key = trimmed.slice(0, colonIdx).trim();
+      const val = trimmed.slice(colonIdx+1).trim();
+      const target = parent.obj;
+      if (val === '') {
+        target[key] = {};
+        stack.push({obj:target[key], indent, lastKey:null});
+      } else { target[key] = parseValue(val); }
+      parent.lastKey = key;
+    }
+  }
+  return result;
+}
+function convertYamlJson() {
+  try {
+    const result = parseYAML(document.getElementById('yamlInput').value);
+    document.getElementById('yamlOutput').value = JSON.stringify(result, null, 2);
+    showMsg('yamlMsg','Converted successfully');
+  } catch(e) { showMsg('yamlMsg','Error: '+e.message,true); }
+}
+
+// ============================================================
+// DOC TOOL FUNCTIONS
+// ============================================================
+function caseTransform(type) {
+  const input = document.getElementById('caseTxtInput').value;
+  let out = input;
+  if (type==='upper') out = input.toUpperCase();
+  else if (type==='lower') out = input.toLowerCase();
+  else if (type==='title') out = input.replace(/\w\S*/g, w=>w[0].toUpperCase()+w.slice(1).toLowerCase());
+  else if (type==='camel') out = input.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g,(_,c)=>c.toUpperCase());
+  else if (type==='snake') out = input.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+  else if (type==='kebab') out = input.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+  else if (type==='pascal') out = input.replace(/(\w)(\w*)/g,(_,f,r)=>f.toUpperCase()+r.toLowerCase()).replace(/\s+/g,'');
+  else if (type==='scream') out = input.toUpperCase().replace(/\s+/g,'_').replace(/[^A-Z0-9_]/g,'');
+  document.getElementById('caseTxtOutput').value = out;
+}
+
+function renderHandwriting() {
+  const text = document.getElementById('handInput').value;
+  if (!text.trim()) { showMsg('handMsg','Enter text first',true); return; }
+  const fontSize = parseInt(document.getElementById('handSize').value) || 22;
+  const lineH = parseInt(document.getElementById('handLine').value) || 38;
+  const lines = text.split('\n');
+  const canvas = document.getElementById('handCanvas');
+  const padding = 60;
+  const leftMargin = 60;
+  canvas.width = 794;
+  canvas.height = Math.max(400, lines.length * lineH + padding * 2);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fffef5';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#c8d8e8';
+  ctx.lineWidth = 1;
+  for (let y=padding; y<canvas.height-padding/2; y+=lineH) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+  }
+  ctx.strokeStyle = '#ffaaaa';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(leftMargin,0); ctx.lineTo(leftMargin,canvas.height); ctx.stroke();
+  ctx.fillStyle = '#1a237e';
+  ctx.font = `${fontSize}px 'Caveat', cursive, sans-serif`;
+  lines.forEach((line, i) => {
+    ctx.fillText(line, leftMargin+10, padding+i*lineH-6);
+  });
+  canvas.style.display = 'block';
+  canvas.toBlob(blob => download(blob, 'handwriting.png'));
+  showMsg('handMsg','Handwriting rendered and downloaded');
+}
+
+function countWords() {
+  const t = document.getElementById('wordInput').value;
+  const words = t.trim() ? (t.trim().match(/\S+/g)||[]) : [];
+  const sentences = t.trim() ? (t.match(/[.!?]+/g)||[]).length : 0;
+  const paras = t.trim() ? t.split(/\n\s*\n/).filter(p=>p.trim()).length : 0;
+  const unique = new Set(words.map(w=>w.toLowerCase().replace(/[^a-z]/g,''))).size;
+  const readMin = Math.ceil(words.length/200);
+  const speakMin = Math.ceil(words.length/130);
+  document.getElementById('wWords').textContent = words.length.toLocaleString();
+  document.getElementById('wChars').textContent = t.length.toLocaleString();
+  document.getElementById('wNoSp').textContent = t.replace(/\s/g,'').length.toLocaleString();
+  document.getElementById('wSent').textContent = sentences;
+  document.getElementById('wPara').textContent = paras;
+  document.getElementById('wUniq').textContent = unique.toLocaleString();
+  document.getElementById('wRead').textContent = readMin<1?'<1m':readMin+'m';
+  document.getElementById('wSpeak').textContent = speakMin<1?'<1m':speakMin+'m';
+}
+
+function cleanText() {
+  let t = document.getElementById('cleanInput').value;
+  if (document.getElementById('cleanInvis').checked) t = t.replace(/[\u200B-\u200D\uFEFF\u00AD\u200E\u200F]/g,'');
+  if (document.getElementById('cleanMulti').checked) t = t.replace(/[ \t]+/g,' ').replace(/ +$/gm,'');
+  if (document.getElementById('cleanEmpty').checked) t = t.replace(/\n{3,}/g,'\n\n');
+  if (document.getElementById('cleanTrim').checked) t = t.trim();
+  document.getElementById('cleanOutput').value = t;
+  showMsg('cleanMsg','Text cleaned');
+}
+
+function genCite() {
+  const author=document.getElementById('citeAuthor').value.trim();
+  const year=document.getElementById('citeYear').value.trim();
+  const title=document.getElementById('citeTitle').value.trim();
+  const pub=document.getElementById('citePublisher').value.trim();
+  const vi=document.getElementById('citeVolIssue').value.trim();
+  const pages=document.getElementById('citePages').value.trim();
+  const url=document.getElementById('citeUrl').value.trim();
+  const style=document.getElementById('citeStyle').value;
+  let cite='';
+  if (style==='apa') {
+    cite = `${author} (${year}). ${title}. ${pub}${vi?', '+vi:''}${pages?', '+pages:''}.${url?' Retrieved from '+url:''}`;
+  } else if (style==='mla') {
+    cite = `${author}. "${title}." ${pub}, ${vi?vi+', ':''}${year}${pages?', pp. '+pages:''}.${url?' '+url+'.':''}`;
+  } else {
+    cite = `${author} ${year}, '${title}', ${pub}${vi?', vol. '+vi:''}${pages?', pp. '+pages:''}.${url?' Available at: '+url:''}`;
+  }
+  const out=document.getElementById('citeOutput');
+  out.textContent=cite; out.style.display='block';
+  document.getElementById('citeCopyBtn').style.display='';
+}
+
+const LOREM_WORDS='lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum'.split(' ');
+function genLorem() {
+  const count = parseInt(document.getElementById('loremCount').value)||3;
+  const classic = document.getElementById('loremClassic').checked;
+  const type = document.getElementById('loremType').value;
+  const paras = [];
+  for (let p=0; p<count; p++) {
+    if (p===0 && classic) {
+      paras.push('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.');
+      continue;
+    }
+    const wc = type==='sentence'?12+Math.floor(Math.random()*10):40+Math.floor(Math.random()*60);
+    const words = [];
+    for (let i=0; i<wc; i++) words.push(LOREM_WORDS[Math.floor(Math.random()*LOREM_WORDS.length)]);
+    words[0] = words[0].charAt(0).toUpperCase()+words[0].slice(1);
+    paras.push(words.join(' ')+'.');
+  }
+  document.getElementById('loremOutput').value = type==='sentence'?paras.join(' '):paras.join('\n\n');
+}
+
+function sortText(type) {
+  const lines = document.getElementById('sortInput').value.split('\n');
+  let sorted;
+  if (type==='az') sorted=[...lines].sort((a,b)=>a.localeCompare(b));
+  else if (type==='za') sorted=[...lines].sort((a,b)=>b.localeCompare(a));
+  else if (type==='len') sorted=[...lines].sort((a,b)=>a.length-b.length);
+  else if (type==='lendesc') sorted=[...lines].sort((a,b)=>b.length-a.length);
+  else if (type==='rand') sorted=[...lines].sort(()=>Math.random()-0.5);
+  document.getElementById('sortOutput').value = sorted.join('\n');
+}
+
+function removeDupes() {
+  const lines = document.getElementById('dupeInput').value.split('\n');
+  const ci = document.getElementById('dupeCi').checked;
+  const seen = new Set();
+  const unique = lines.filter(l => {
+    const key = ci ? l.toLowerCase() : l;
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+  document.getElementById('dupeOutput').value = unique.join('\n');
+  document.getElementById('dupeStats').textContent = `Removed ${lines.length-unique.length} duplicate(s). ${unique.length} unique line(s) remain.`;
+}
+
+function updateMdPreview() {
+  const md = document.getElementById('mdInput').value;
+  document.getElementById('mdPreview').innerHTML = marked.parse(md);
+}
+
+function countSyllables(word) {
+  word = word.toLowerCase().replace(/[^a-z]/g,'');
+  if (word.length<=3) return 1;
+  word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/,'').replace(/^y/,'');
+  const m = word.match(/[aeiouy]{1,2}/g);
+  return m ? Math.max(1,m.length) : 1;
+}
+function analyzeReadability() {
+  const text = document.getElementById('readInput').value;
+  const words = text.match(/\b\w+\b/g)||[];
+  const sentences = Math.max(1,(text.match(/[.!?]+/g)||[]).length);
+  const syllables = words.reduce((s,w)=>s+countSyllables(w),0);
+  const wc = words.length||1;
+  const fre = 206.835 - 1.015*(wc/sentences) - 84.6*(syllables/wc);
+  const fkgl = 0.39*(wc/sentences) + 11.8*(syllables/wc) - 15.59;
+  const freLevel = fre>=90?'Very Easy':fre>=80?'Easy':fre>=70?'Fairly Easy':fre>=60?'Standard':fre>=50?'Fairly Difficult':fre>=30?'Difficult':'Very Confusing';
+  document.getElementById('readOutput').innerHTML = `
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+      <div class="border border-[#F3F4F6] dark:border-[#262626] p-4"><div class="text-3xl font-bold mono">${fre.toFixed(1)}</div><div class="text-xs opacity-50 mt-1">Flesch Reading Ease</div><div class="text-xs mt-2">${freLevel}</div></div>
+      <div class="border border-[#F3F4F6] dark:border-[#262626] p-4"><div class="text-3xl font-bold mono">${Math.max(1,fkgl).toFixed(1)}</div><div class="text-xs opacity-50 mt-1">Grade Level</div><div class="text-xs mt-2">US Grade ${Math.round(Math.max(1,fkgl))}</div></div>
+      <div class="border border-[#F3F4F6] dark:border-[#262626] p-4"><div class="text-3xl font-bold mono">${(syllables/wc).toFixed(2)}</div><div class="text-xs opacity-50 mt-1">Syllables/Word</div><div class="text-xs mt-2">${syllables} total syllables</div></div>
+    </div>`;
+}
+
+function binEncode() {
+  const t = document.getElementById('binInput').value;
+  document.getElementById('binOutput').value = t.split('').map(c=>c.charCodeAt(0).toString(2).padStart(8,'0')).join(' ');
+}
+function binDecode() {
+  try {
+    document.getElementById('binOutput').value = document.getElementById('binInput').value.trim().split(/\s+/).map(b=>String.fromCharCode(parseInt(b,2))).join('');
+  } catch(e) { document.getElementById('binOutput').value = 'Error: invalid binary'; }
+}
+
+function revText(type) {
+  const t = document.getElementById('revInput').value;
+  document.getElementById('revOutput').value = type==='chars' ? t.split('').reverse().join('') : t.split(' ').reverse().join(' ');
+}
+
+function findReplace() {
+  const find = document.getElementById('findInput').value;
+  const replace = document.getElementById('replaceInput').value;
+  const text = document.getElementById('findText').value;
+  const useRegex = document.getElementById('findRegex').checked;
+  const caseSens = document.getElementById('findCase').checked;
+  if (!find) { showMsg('findStats','Enter a search pattern',true); return; }
+  try {
+    const flags = 'g' + (caseSens ? '' : 'i');
+    const pattern = useRegex ? new RegExp(find, flags) : new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), flags);
+    const result = text.replace(pattern, replace);
+    const count = (text.match(pattern)||[]).length;
+    document.getElementById('findOutput').value = result;
+    document.getElementById('findStats').textContent = `${count} replacement(s) made.`;
+    document.getElementById('findStats').style.display = 'block';
+  } catch(e) { showMsg('findStats','Error: '+e.message,true); }
+}
+
+const MORSE={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..',0:'-----',1:'.----',2:'..---',3:'...--',4:'....-',5:'.....',6:'-....',7:'--...',8:'---..',9:'----.','.':'.-.-.-',',':'--..--','?':'..--..','/':'-..-.',' ':'/'};
+const MORSE_REV=Object.fromEntries(Object.entries(MORSE).map(([k,v])=>[v,k]));
+function morseEncode() {
+  document.getElementById('morseOutput').value = document.getElementById('morseInput').value.toUpperCase().split('').map(c=>MORSE[c]||'').filter(c=>c).join(' ');
+}
+function morseDecode() {
+  const input = document.getElementById('morseInput').value.trim();
+  document.getElementById('morseOutput').value = input.split(' / ').map(word=>word.split(' ').map(c=>MORSE_REV[c]||'?').join('')).join(' ');
+}
+
+function genSlugTxtLive() {
+  const val = document.getElementById('slugTxtInput').value;
+  const slug = val.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9\s-]/g,'').trim()
+    .replace(/\s+/g,'-').replace(/-+/g,'-');
+  document.getElementById('slugTxtOutput').value = slug;
+}
+
+// ============================================================
+// MISC TOOL FUNCTIONS
+// ============================================================
+function convertUnix() {
+  const raw = document.getElementById('unixInput').value.trim();
+  const ts = parseInt(raw);
+  if (isNaN(ts)) { showMsg('unixMsg','Enter a valid timestamp',true); return; }
+  const d = new Date(ts < 1e12 ? ts*1000 : ts); // Timestamps < 1 trillion are assumed to be seconds (ms timestamps exceed 1e12 after ~2001)
+  document.getElementById('unixOutput').innerHTML = `
+    <div class="space-y-2 mono text-sm">
+      <div><span class="opacity-50">UTC:&nbsp;&nbsp;&nbsp;</span> ${d.toUTCString()}</div>
+      <div><span class="opacity-50">ISO:&nbsp;&nbsp;&nbsp;</span> ${d.toISOString()}</div>
+      <div><span class="opacity-50">Local:&nbsp;&nbsp;</span> ${d.toLocaleString()}</div>
+      <div><span class="opacity-50">Date:&nbsp;&nbsp;&nbsp;</span> ${d.toLocaleDateString()}</div>
+      <div><span class="opacity-50">Time:&nbsp;&nbsp;&nbsp;</span> ${d.toLocaleTimeString()}</div>
+    </div>`;
+}
+function setCurrentEpoch() {
+  document.getElementById('unixInput').value = Math.floor(Date.now()/1000);
+  convertUnix();
+}
+function startEpochClock() {
+  const el = document.getElementById('currentEpoch');
+  if (el) { el.textContent = Math.floor(Date.now()/1000); setTimeout(startEpochClock, 1000); }
+}
+
+const UNITS = {
+  length: {mm:1,cm:10,m:1000,km:1e6,in:25.4,ft:304.8,yd:914.4,mi:1609344},
+  weight: {mg:1,g:1000,kg:1e6,t:1e9,oz:28349.5,lb:453592},
+  temp: {}
+};
+function unitCatChange() {
+  const cat = document.getElementById('unitCat').value;
+  const options = {
+    length:['mm','cm','m','km','in','ft','yd','mi'],
+    weight:['mg','g','kg','t','oz','lb'],
+    temp:['C','F','K']
+  }[cat];
+  ['unitFrom','unitTo'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel) sel.innerHTML = options.map(o=>`<option value="${o}">${o}</option>`).join('');
+  });
+}
+function convertUnit() {
+  const val = parseFloat(document.getElementById('unitVal').value);
+  const from = document.getElementById('unitFrom').value;
+  const to = document.getElementById('unitTo').value;
+  const cat = document.getElementById('unitCat').value;
+  if (isNaN(val)) { document.getElementById('unitResult').textContent='Enter a number'; return; }
+  let result;
+  if (cat === 'temp') {
+    if (from===to) result=val;
+    else if (from==='C'&&to==='F') result=val*9/5+32;
+    else if (from==='F'&&to==='C') result=(val-32)*5/9;
+    else if (from==='C'&&to==='K') result=val+273.15;
+    else if (from==='K'&&to==='C') result=val-273.15;
+    else if (from==='F'&&to==='K') result=(val-32)*5/9+273.15;
+    else if (from==='K'&&to==='F') result=(val-273.15)*9/5+32;
+  } else {
+    const units = UNITS[cat];
+    if (units && units[from] !== undefined && units[to] !== undefined) {
+      result = val * units[from] / units[to];
+    }
+  }
+  document.getElementById('unitResult').textContent = result !== undefined
+    ? `${val} ${from} = ${result.toPrecision(8).replace(/\.?0+$/,'')} ${to}`
+    : 'Conversion not available';
+}
+
+let audioRecorder=null, audioChunks=[], audioTimer=null, audioSecs=0;
+async function startAudioRec() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    audioChunks = [];
+    audioRecorder = new MediaRecorder(stream);
+    audioRecorder.ondataavailable = e => audioChunks.push(e.data);
+    audioRecorder.onstop = () => {
+      const blob = new Blob(audioChunks, {type:'audio/webm'});
+      const url = URL.createObjectURL(blob);
+      document.getElementById('audioPlayback').src = url;
+      document.getElementById('audioPlayback').style.display = 'block';
+      document.getElementById('audioDlBtn').style.display = '';
+      document.getElementById('audioDlBtn').onclick = () => download(blob,'recording.webm');
+      stream.getTracks().forEach(t=>t.stop());
+    };
+    audioRecorder.start();
+    audioSecs=0;
+    audioTimer = setInterval(()=>{
+      audioSecs++;
+      const el=document.getElementById('audioTimer');
+      if(el) el.textContent=`${String(Math.floor(audioSecs/60)).padStart(2,'0')}:${String(audioSecs%60).padStart(2,'0')}`;
+    },1000);
+    document.getElementById('audioStartBtn').style.display='none';
+    document.getElementById('audioStopBtn').style.display='';
+    document.getElementById('audioStatus').textContent='Recording...';
+  } catch(e) { document.getElementById('audioStatus').textContent='Microphone access denied: '+e.message; }
+}
+function stopAudioRec() {
+  if(audioRecorder&&audioRecorder.state!=='inactive') { audioRecorder.stop(); clearInterval(audioTimer); }
+  document.getElementById('audioStartBtn').style.display='';
+  document.getElementById('audioStopBtn').style.display='none';
+  document.getElementById('audioStatus').textContent='Recording stopped.';
+}
+
+let videoRecorder=null, videoChunks=[], videoTimer=null, videoSecs=0;
+async function startVideoRec() {
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});
+    videoChunks = [];
+    videoRecorder = new MediaRecorder(stream);
+    videoRecorder.ondataavailable = e => videoChunks.push(e.data);
+    videoRecorder.onstop = () => {
+      const blob = new Blob(videoChunks, {type:'video/webm'});
+      const url = URL.createObjectURL(blob);
+      document.getElementById('videoPlayback').src = url;
+      document.getElementById('videoPlayback').style.display = 'block';
+      document.getElementById('videoDlBtn').style.display = '';
+      document.getElementById('videoDlBtn').onclick = () => download(blob,'screen-recording.webm');
+    };
+    stream.getVideoTracks()[0].onended = stopVideoRec;
+    videoRecorder.start();
+    videoSecs=0;
+    videoTimer = setInterval(()=>{
+      videoSecs++;
+      const el=document.getElementById('videoTimer');
+      if(el) el.textContent=`${String(Math.floor(videoSecs/60)).padStart(2,'0')}:${String(videoSecs%60).padStart(2,'0')}`;
+    },1000);
+    document.getElementById('videoStartBtn').style.display='none';
+    document.getElementById('videoStopBtn').style.display='';
+    document.getElementById('videoStatus').textContent='Recording screen...';
+  } catch(e) { document.getElementById('videoStatus').textContent='Error: '+e.message; }
+}
+function stopVideoRec() {
+  if(videoRecorder&&videoRecorder.state!=='inactive') videoRecorder.stop();
+  clearInterval(videoTimer);
+  document.getElementById('videoStartBtn').style.display='';
+  document.getElementById('videoStopBtn').style.display='none';
+  document.getElementById('videoStatus').textContent='Recording saved.';
+}
+
+let pomoInterval=null, pomoSecs=0, pomoRunning=false, pomoMode='work';
+function startPomo() {
+  if(pomoRunning) return;
+  pomoRunning=true;
+  const workMins = parseInt(document.getElementById('pomoWork').value)||25;
+  const breakMins = parseInt(document.getElementById('pomoBreak').value)||5;
+  if(pomoSecs===0) pomoSecs = workMins*60;
+  pomoInterval = setInterval(()=>{
+    pomoSecs--;
+    updatePomoDisplay();
+    if(pomoSecs<=0) {
+      const nextMode = pomoMode==='work'?'break':'work';
+      pomoMode = nextMode;
+      pomoSecs = (nextMode==='work'?workMins:breakMins)*60;
+      const lbl = document.getElementById('pomoModeLabel');
+      if(lbl) lbl.textContent = nextMode.charAt(0).toUpperCase()+nextMode.slice(1);
+      try {
+        if (Notification.permission === 'granted') {
+          new Notification('smpl. — Time is up!');
+        } else if (Notification.permission !== 'denied') {
+          Notification.requestPermission().then(p => { if(p==='granted') new Notification('smpl. — Time is up!'); });
         }
+      } catch {}
+    }
+  },1000);
+  document.getElementById('pomoStartBtn').style.display='none';
+  document.getElementById('pomoPauseBtn').style.display='';
+}
+function pausePomo() {
+  clearInterval(pomoInterval); pomoRunning=false;
+  document.getElementById('pomoStartBtn').style.display='';
+  document.getElementById('pomoPauseBtn').style.display='none';
+}
+function resetPomo() {
+  clearInterval(pomoInterval); pomoRunning=false;
+  pomoSecs=0; pomoMode='work';
+  updatePomoDisplay();
+  const lbl=document.getElementById('pomoModeLabel'); if(lbl) lbl.textContent='Work';
+  document.getElementById('pomoStartBtn').style.display='';
+  document.getElementById('pomoPauseBtn').style.display='none';
+}
+function updatePomoDisplay() {
+  const mins=Math.floor(pomoSecs/60), secs=pomoSecs%60;
+  const el=document.getElementById('pomoDisplay');
+  if(el) el.textContent=`${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+}
 
-        function showPage(id) {
-            document.querySelectorAll('.page-section').forEach(p => p.classList.add('hidden-section'));
-            document.getElementById(id).classList.remove('hidden-section');
-            window.scrollTo(0,0);
-        }
+// ============================================================
+// TOOL REGISTRY
+// ============================================================
+const registry = [
+// ---- PDF ----
+{id:'merge.pdf',name:'Merge PDFs',cat:'PDF',tagline:'Combine multiple PDF files into one document',desc:'Upload multiple PDF files and merge them into a single document. Files are combined in the order you select them.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF Files</label>
+<input type="file" id="mergeInput" accept=".pdf" multiple class="block text-sm mb-6 w-full">
+<button class="smpl-btn" onclick="pdfMerge()">Merge PDFs</button>
+<div id="mergeMsg" class="text-xs mt-3" style="display:none"></div>`},
 
-        function loadTool(id) {
-            showPage('workspace');
-            const t = registry.find(x => x.id === id);
-            document.getElementById('toolTitle').innerText = t.name;
-            document.getElementById('toolDesc').innerText = t.desc;
-            
-            const ui = document.getElementById('toolInterface');
-            ui.innerHTML = `<div class="p-20 border border-dashed border-gray-100 text-center text-gray-300 uppercase text-[10px] tracking-widest">Initialising ${id}.engine ...</div>`;
-            
-            // Logic for specific tools goes here
-            if(id === 'qr-gen') {
-                ui.innerHTML = `
-                    <input type="text" id="qIn" placeholder="Enter link..." class="smpl-input mb-8">
-                    <button class="smpl-btn" onclick="alert('QR Generated Locally')">Generate</button>
-                `;
-            }
-        }
+{id:'split.pdf',name:'Split PDF',cat:'PDF',tagline:'Extract each page into a separate PDF file',desc:'Split a PDF so each page becomes its own file. Pages are saved in a ZIP archive.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="splitInput" accept=".pdf" class="block text-sm mb-6 w-full">
+<button class="smpl-btn" onclick="pdfSplit()">Split into Pages</button>
+<div id="splitMsg" class="text-xs mt-3" style="display:none"></div>`},
 
-        document.getElementById('globalSearch').oninput = render;
-        render();
-    </script>
+{id:'number.pdf',name:'Number Pages',cat:'PDF',tagline:'Add page numbers to the bottom of each page',desc:'Add page numbers to your PDF. Choose from simple numbers, "N of T" format, or "Page N" format.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="numberInput" accept=".pdf" class="block text-sm mb-4 w-full">
+<div class="flex gap-4 mb-6 flex-wrap">
+  <div class="flex-1 min-w-32">
+    <label class="text-xs opacity-50 block mb-1">Font Size</label>
+    <input type="number" id="numberSize" value="10" min="6" max="24" class="smpl-input text-sm">
+  </div>
+  <div class="flex-1 min-w-32">
+    <label class="text-xs opacity-50 block mb-1">Format</label>
+    <select id="numberFmt" class="smpl-select w-full text-sm">
+      <option value="n">1, 2, 3…</option>
+      <option value="n_of_t">1 of 10</option>
+      <option value="page_n">Page 1</option>
+    </select>
+  </div>
+</div>
+<button class="smpl-btn" onclick="pdfNumber()">Add Page Numbers</button>
+<div id="numberMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'rotate.pdf',name:'Rotate PDF',cat:'PDF',tagline:'Rotate pages by 90, 180, or 270 degrees',desc:'Rotate specific pages or all pages of your PDF. Specify page ranges like "1,3,5-8" or leave blank to rotate all.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="rotateInput" accept=".pdf" class="block text-sm mb-4 w-full">
+<div class="flex gap-4 mb-6 flex-wrap">
+  <div class="flex-1 min-w-40">
+    <label class="text-xs opacity-50 block mb-1">Degrees</label>
+    <select id="rotateDeg" class="smpl-select w-full text-sm">
+      <option value="90">90° clockwise</option>
+      <option value="180">180°</option>
+      <option value="270">270° (90° CCW)</option>
+    </select>
+  </div>
+  <div class="flex-1 min-w-40">
+    <label class="text-xs opacity-50 block mb-1">Pages (e.g. 1,3,5-8 or blank=all)</label>
+    <input type="text" id="rotatePages" placeholder="all" class="smpl-input text-sm">
+  </div>
+</div>
+<button class="smpl-btn" onclick="pdfRotate()">Rotate Pages</button>
+<div id="rotateMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'delete.pdf',name:'Delete Pages',cat:'PDF',tagline:'Remove specific pages from a PDF',desc:'Enter the page numbers you want to remove, separated by commas. Supports ranges like "2-5".',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="deleteInput" accept=".pdf" class="block text-sm mb-4 w-full">
+<label class="text-xs opacity-50 block mb-1">Pages to delete (e.g. 1,3,5-8)</label>
+<input type="text" id="deletePages" placeholder="1,3,5-8" class="smpl-input text-sm mb-6">
+<button class="smpl-btn" onclick="pdfDelete()">Delete Pages</button>
+<div id="deleteMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'gray.pdf',name:'Grayscale PDF',cat:'PDF',tagline:'Strip colour metadata from a PDF document',desc:'Removes color metadata and marks the document as grayscale. Note: true pixel-level conversion requires PDF.js rendering which is not available in this browser tool.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="grayPdfInput" accept=".pdf" class="block text-sm mb-6 w-full">
+<button class="smpl-btn" onclick="pdfGray()">Strip Colour Metadata</button>
+<div id="grayPdfMsg" class="text-xs mt-3 max-w-lg leading-relaxed" style="display:none"></div>`},
+
+{id:'lock.pdf',name:'Lock PDF',cat:'PDF',tagline:'Add password protection to a PDF',desc:'Password-protect your PDF. Note: full encryption support requires a server-side tool; this version clears metadata and saves with a lock marker.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="lockInput" accept=".pdf" class="block text-sm mb-4 w-full">
+<div class="flex gap-4 mb-6 flex-wrap">
+  <div class="flex-1 min-w-40">
+    <label class="text-xs opacity-50 block mb-1">User Password</label>
+    <input type="password" id="lockUser" class="smpl-input text-sm" placeholder="Required to open">
+  </div>
+  <div class="flex-1 min-w-40">
+    <label class="text-xs opacity-50 block mb-1">Owner Password</label>
+    <input type="password" id="lockOwner" class="smpl-input text-sm" placeholder="Required to edit">
+  </div>
+</div>
+<button class="smpl-btn" onclick="pdfLock()">Lock PDF</button>
+<div id="lockMsg" class="text-xs mt-3 max-w-lg leading-relaxed" style="display:none"></div>`},
+
+{id:'unlock.pdf',name:'Unlock PDF',cat:'PDF',tagline:'Remove password from an encrypted PDF',desc:'Remove encryption from a password-protected PDF. You need the existing password to unlock it.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="unlockInput" accept=".pdf" class="block text-sm mb-4 w-full">
+<label class="text-xs opacity-50 block mb-1">Password</label>
+<input type="password" id="unlockPass" class="smpl-input text-sm mb-6" placeholder="PDF password">
+<button class="smpl-btn" onclick="pdfUnlock()">Unlock PDF</button>
+<div id="unlockMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'jpg.pdf',name:'Images → PDF',cat:'PDF',tagline:'Convert JPG/PNG images into a single PDF',desc:'Select one or more JPG or PNG images to combine them into a PDF document. Each image becomes its own page.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image Files (JPG/PNG)</label>
+<input type="file" id="jpgInput" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple class="block text-sm mb-6 w-full">
+<button class="smpl-btn" onclick="jpgToPdf()">Create PDF</button>
+<div id="jpgMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'slim.pdf',name:'Slim PDF',cat:'PDF',tagline:'Reduce PDF size by removing metadata and unused objects',desc:'Removes all metadata (title, author, subject, keywords, creator, producer) and re-saves the PDF with object stream compression.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="slimInput" accept=".pdf" class="block text-sm mb-6 w-full">
+<button class="smpl-btn" onclick="pdfSlim()">Slim PDF</button>
+<div id="slimMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'meta.pdf',name:'PDF Metadata',cat:'PDF',tagline:'View and edit PDF document metadata',desc:'Load a PDF to view its current metadata, then edit and save the updated metadata back.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="metaInput" accept=".pdf" class="block text-sm mb-4 w-full" onchange="pdfMetaLoad()">
+<div class="space-y-4 mb-6">
+  <div><label class="text-xs opacity-50 block mb-1">Title</label><input type="text" id="metaTitle" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Author</label><input type="text" id="metaAuthor" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Subject</label><input type="text" id="metaSubject" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Keywords (comma-separated)</label><input type="text" id="metaKeywords" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Creator</label><input type="text" id="metaCreator" class="smpl-input text-sm"></div>
+</div>
+<button class="smpl-btn" onclick="pdfMeta()">Save Metadata</button>
+<div id="metaMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'mark.pdf',name:'Watermark PDF',cat:'PDF',tagline:'Add a diagonal text watermark to every page',desc:'Add a semi-transparent text watermark diagonally across each page of your PDF.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="markInput" accept=".pdf" class="block text-sm mb-4 w-full">
+<div class="space-y-4 mb-6">
+  <div><label class="text-xs opacity-50 block mb-1">Watermark Text</label><input type="text" id="markText" value="CONFIDENTIAL" class="smpl-input text-sm"></div>
+  <div class="flex gap-6 flex-wrap">
+    <div class="flex-1 min-w-32">
+      <label class="text-xs opacity-50 block mb-1">Font Size</label>
+      <input type="number" id="markSize" value="48" min="12" max="120" class="smpl-input text-sm">
+    </div>
+    <div class="flex-1 min-w-32">
+      <label class="text-xs opacity-50 block mb-1">Opacity (0–1)</label>
+      <input type="number" id="markOpacity" value="0.15" min="0.01" max="1" step="0.01" class="smpl-input text-sm">
+    </div>
+  </div>
+</div>
+<button class="smpl-btn" onclick="pdfMark()">Add Watermark</button>
+<div id="markMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'extract.pdf',name:'Extract Text',cat:'PDF',tagline:'Extract form fields and metadata from a PDF',desc:'Extracts form field values and document metadata. Full text extraction requires PDF.js (not included). Form fields from interactive PDFs are supported.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="extractInput" accept=".pdf" class="block text-sm mb-4 w-full">
+<button class="smpl-btn mb-4" onclick="pdfExtract()">Extract</button>
+<div id="extractMsg" class="text-xs mb-2" style="display:none"></div>
+<textarea id="extractOutput" class="smpl-textarea" style="min-height:200px" readonly placeholder="Extracted content will appear here…"></textarea>`},
+
+{id:'flat.pdf',name:'Flatten PDF',cat:'PDF',tagline:'Flatten interactive form fields into static content',desc:'Merges all form fields, annotations, and interactive elements into the static page content, preventing further editing.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="flatInput" accept=".pdf" class="block text-sm mb-6 w-full">
+<button class="smpl-btn" onclick="pdfFlat()">Flatten Form Fields</button>
+<div id="flatMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'sign.pdf',name:'Sign PDF',cat:'PDF',tagline:'Overlay a signature image onto a PDF page',desc:'Place a PNG or JPG signature image at a specific position on a page of your PDF.',
+render:()=>`
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+  <div><label class="text-xs opacity-50 block mb-1">PDF File</label><input type="file" id="signPdfInput" accept=".pdf" class="block text-sm w-full"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Signature Image (PNG/JPG)</label><input type="file" id="signImgInput" accept=".png,.jpg,.jpeg,image/*" class="block text-sm w-full"></div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div><label class="text-xs opacity-50 block mb-1">Page</label><input type="number" id="signPage" value="1" min="1" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">X (pts from left)</label><input type="number" id="signX" value="50" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Y (pts from top)</label><input type="number" id="signY" value="50" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Width (pts)</label><input type="number" id="signW" value="150" class="smpl-input text-sm"></div>
+</div>
+<button class="smpl-btn" onclick="pdfSign()">Add Signature</button>
+<div id="signMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'crop.pdf',name:'Crop PDF',cat:'PDF',tagline:'Set crop box margins on every page',desc:'Trim the visible area of all pages by specifying margins (in points, 1pt = 1/72 inch).',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="cropPdfInput" accept=".pdf" class="block text-sm mb-4 w-full">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div><label class="text-xs opacity-50 block mb-1">Top (pts)</label><input type="number" id="cropTop" value="0" min="0" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Right (pts)</label><input type="number" id="cropRight" value="0" min="0" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Bottom (pts)</label><input type="number" id="cropBottom" value="0" min="0" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Left (pts)</label><input type="number" id="cropLeft" value="0" min="0" class="smpl-input text-sm"></div>
+</div>
+<button class="smpl-btn" onclick="pdfCrop()">Crop PDF</button>
+<div id="cropPdfMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'inv.pdf',name:'Invert PDF',cat:'PDF',tagline:'Note: use your PDF viewer\'s dark mode instead',desc:'True colour inversion requires PDF.js rendering. This tool saves the PDF with an invert request marker and explains how to use your viewer\'s built-in accessibility features.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="invPdfInput" accept=".pdf" class="block text-sm mb-4 w-full">
+<div class="border border-[#F3F4F6] dark:border-[#262626] p-4 mb-6 text-sm opacity-60 leading-relaxed">
+  <strong class="opacity-100">⚠ Limitation</strong><br>
+  True colour inversion (like dark mode) requires rendering each page as pixels, which needs PDF.js.<br><br>
+  <strong class="opacity-100">Alternative:</strong> In most PDF viewers:<br>
+  • Adobe: Edit → Preferences → Accessibility → Replace Document Colors<br>
+  • Chrome: press <code class="mono text-xs">Ctrl+Shift+I</code> in DevTools → check Rendering → Emulate CSS media: prefers-color-scheme: dark<br>
+  • macOS: System Preferences → Accessibility → Display → Invert Colors
+</div>
+<button class="smpl-btn" onclick="pdfInvert()">Save with Invert Note</button>
+<div id="invPdfMsg" class="text-xs mt-3 max-w-lg" style="display:none"></div>`},
+
+{id:'zip.pdf',name:'Zip PDFs',cat:'PDF',tagline:'Bundle multiple PDFs into a single ZIP archive',desc:'Select multiple PDF files and pack them into a ZIP archive for easy sharing.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF Files</label>
+<input type="file" id="zipPdfInput" accept=".pdf" multiple class="block text-sm mb-4 w-full">
+<label class="text-xs opacity-50 block mb-1">ZIP Filename</label>
+<input type="text" id="zipPdfName" value="pdfs.zip" class="smpl-input text-sm mb-6">
+<button class="smpl-btn" onclick="pdfZip()">Create ZIP</button>
+<div id="zipPdfMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'order.pdf',name:'Reorder Pages',cat:'PDF',tagline:'Drag and drop pages to reorder them',desc:'Load a PDF, then drag the page cards to rearrange them. Click Save to download the reordered PDF.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="orderInput" accept=".pdf" class="block text-sm mb-4 w-full" onchange="pdfOrderLoad()">
+<div id="orderMsg" class="text-xs mb-4" style="display:none"></div>
+<div id="orderList" class="mb-6"></div>
+<button id="orderSaveBtn" class="smpl-btn" onclick="pdfOrderSave()" style="display:none">Save Reordered PDF</button>`},
+
+{id:'book.pdf',name:'Booklet PDF',cat:'PDF',tagline:'Reorder pages for saddle-stitch booklet printing',desc:'Reorders PDF pages into booklet imposition order so you can print double-sided and fold to make a booklet.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">PDF File</label>
+<input type="file" id="bookInput" accept=".pdf" class="block text-sm mb-4 w-full">
+<div class="border border-[#F3F4F6] dark:border-[#262626] p-4 mb-6 text-sm opacity-60 leading-relaxed">
+  <strong class="opacity-100">How it works:</strong><br>
+  Pages are reordered so you can print double-sided, then fold and staple in the middle. 
+  Print settings: 2 pages per sheet, flip on short edge.
+</div>
+<button class="smpl-btn" onclick="pdfBook()">Create Booklet</button>
+<div id="bookMsg" class="text-xs mt-3" style="display:none"></div>`,
+},
+
+// ---- Image ----
+{id:'resize.img',name:'Resize Image',cat:'Image',tagline:'Resize any image to exact pixel dimensions',desc:'Resize images using the Canvas API. Enable aspect lock to maintain proportions.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
+<input type="file" id="resizeInput" accept="image/*" class="block text-sm mb-4 w-full" onchange="imgResizePreview()">
+<div id="resizeInfo" class="text-xs opacity-50 mb-4"></div>
+<div class="flex gap-4 mb-4 flex-wrap">
+  <div class="flex-1 min-w-32">
+    <label class="text-xs opacity-50 block mb-1">Width (px)</label>
+    <input type="number" id="resizeW" placeholder="800" class="smpl-input text-sm" oninput="resizeLockAspect('w')">
+  </div>
+  <div class="flex-1 min-w-32">
+    <label class="text-xs opacity-50 block mb-1">Height (px)</label>
+    <input type="number" id="resizeH" placeholder="600" class="smpl-input text-sm" oninput="resizeLockAspect('h')">
+  </div>
+</div>
+<label class="flex items-center gap-2 text-sm mb-6 cursor-pointer">
+  <input type="checkbox" id="resizeLock" checked> Lock aspect ratio
+</label>
+<button class="smpl-btn" onclick="imgResize()">Resize &amp; Download</button>
+<div id="resizeMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'crop.img',name:'Crop Image',cat:'Image',tagline:'Crop a rectangular area from an image',desc:'Specify crop origin (x,y) and dimensions to extract a rectangular region from your image.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
+<input type="file" id="cropImgInput" accept="image/*" class="block text-sm mb-3 w-full" onchange="imgCropPreview()">
+<div id="cropImgInfo" class="text-xs opacity-50 mb-4"></div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div><label class="text-xs opacity-50 block mb-1">X (px)</label><input type="number" id="cropX" value="0" min="0" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Y (px)</label><input type="number" id="cropY" value="0" min="0" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Width (px)</label><input type="number" id="cropW" placeholder="full" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Height (px)</label><input type="number" id="cropH" placeholder="full" class="smpl-input text-sm"></div>
+</div>
+<button class="smpl-btn" onclick="imgCrop()">Crop &amp; Download</button>
+<div id="cropImgMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'strip.img',name:'Strip EXIF',cat:'Image',tagline:'Remove metadata and EXIF data from an image',desc:'Re-exports your image through the Canvas API, which strips all EXIF/metadata. Output is a clean PNG.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
+<input type="file" id="stripInput" accept="image/*" class="block text-sm mb-6 w-full">
+<button class="smpl-btn" onclick="imgStrip()">Strip &amp; Download</button>
+<div id="stripMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'grid.img',name:'Grid Split',cat:'Image',tagline:'Split an image into a 3×3 grid of 9 cells',desc:'Crops the image to a square then divides it into 9 equal cells. Useful for Instagram grid posts. Downloaded as a ZIP.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
+<input type="file" id="gridInput" accept="image/*" class="block text-sm mb-6 w-full">
+<button class="smpl-btn" onclick="imgGrid()">Split into 3×3 Grid</button>
+<div id="gridMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'circle.img',name:'Circle Crop',cat:'Image',tagline:'Crop an image to a perfect circle',desc:'Centers and crops your image to a circle. The output is a square PNG with transparent corners.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
+<input type="file" id="circleInput" accept="image/*" class="block text-sm mb-6 w-full">
+<button class="smpl-btn" onclick="imgCircle()">Circle Crop &amp; Download</button>
+<div id="circleMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'gray.img',name:'Greyscale',cat:'Image',tagline:'Convert an image to greyscale',desc:'Converts each pixel using luminance weights (0.299R + 0.587G + 0.114B). Output is a PNG.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
+<input type="file" id="grayImgInput" accept="image/*" class="block text-sm mb-6 w-full">
+<button class="smpl-btn" onclick="imgGray()">Convert to Greyscale</button>
+<div id="grayImgMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'color.img',name:'Colour Palette',cat:'Image',tagline:'Extract dominant colours from an image',desc:'Samples pixels and groups them into colour buckets to find the most dominant colours. Shows top 6 with hex codes and percentages.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
+<input type="file" id="colorInput" accept="image/*" class="block text-sm mb-4 w-full" onchange="imgColor()">
+<div id="colorMsg" class="text-xs mb-2" style="display:none"></div>
+<div id="colorOutput" class="mt-2"></div>`},
+
+{id:'base64.img',name:'Image → Base64',cat:'Image',tagline:'Convert an image to a Base64 data URI',desc:'Reads your image and outputs the full data URI (suitable for embedding in HTML/CSS) and the raw Base64 string.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
+<input type="file" id="base64ImgInput" accept="image/*" class="block text-sm mb-4 w-full" onchange="imgBase64()">
+<div id="base64ImgMsg" class="text-xs mb-3" style="display:none"></div>
+<div class="space-y-4">
+  <div>
+    <div class="flex justify-between items-center mb-1">
+      <label class="text-xs opacity-50">Data URI</label>
+      <button class="smpl-btn-outline text-xs" onclick="copyToClipboard(document.getElementById('base64ImgOutput').value)">Copy</button>
+    </div>
+    <textarea id="base64ImgOutput" class="smpl-textarea" style="min-height:80px" readonly placeholder="data:image/png;base64,…"></textarea>
+  </div>
+  <div>
+    <div class="flex justify-between items-center mb-1">
+      <label class="text-xs opacity-50">Raw Base64</label>
+      <button class="smpl-btn-outline text-xs" onclick="copyToClipboard(document.getElementById('base64Raw').value)">Copy</button>
+    </div>
+    <textarea id="base64Raw" class="smpl-textarea" style="min-height:80px" readonly placeholder="Base64 string only…"></textarea>
+  </div>
+</div>`},
+
+{id:'fav.img',name:'Favicon Generator',cat:'Image',tagline:'Generate favicon PNGs in 16, 32, 48, 180px',desc:'Creates multiple favicon sizes from your image: 16×16, 32×32, 48×48, and 180×180 (Apple touch icon). Downloaded as a ZIP.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File (square recommended)</label>
+<input type="file" id="favInput" accept="image/*" class="block text-sm mb-6 w-full">
+<button class="smpl-btn" onclick="imgFav()">Generate Favicons</button>
+<div id="favMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'webp.img',name:'Convert to WebP',cat:'Image',tagline:'Convert images to the WebP format',desc:'Converts any browser-supported image to WebP using the Canvas API. Adjust quality (0–1) before converting.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
+<input type="file" id="webpInput" accept="image/*" class="block text-sm mb-4 w-full">
+<label class="text-xs opacity-50 block mb-1">Quality: <span id="webpQVal">0.85</span></label>
+<input type="range" id="webpQuality" min="0.1" max="1" step="0.05" value="0.85" class="mb-6 w-full max-w-xs" oninput="document.getElementById('webpQVal').textContent=this.value">
+<button class="smpl-btn" onclick="imgWebp()">Convert to WebP</button>
+<div id="webpMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'blur.img',name:'Blur Image',cat:'Image',tagline:'Apply a Gaussian blur to an image',desc:'Uses the CSS filter blur on a Canvas element. Adjust the blur radius for stronger or subtler effects.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
+<input type="file" id="blurInput" accept="image/*" class="block text-sm mb-4 w-full">
+<label class="text-xs opacity-50 block mb-1">Blur Radius: <span id="blurRadVal">5</span>px</label>
+<input type="range" id="blurRadius" min="1" max="50" value="5" class="mb-6 w-full max-w-xs" oninput="document.getElementById('blurRadVal').textContent=this.value">
+<button class="smpl-btn" onclick="imgBlur()">Blur &amp; Download</button>
+<div id="blurMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'inv.img',name:'Invert Colours',cat:'Image',tagline:'Invert pixel colours to create a negative',desc:'Inverts all RGB pixel values (255 - value) to create a colour-negative effect. Output is a PNG.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
+<input type="file" id="invImgInput" accept="image/*" class="block text-sm mb-6 w-full">
+<button class="smpl-btn" onclick="imgInvert()">Invert &amp; Download</button>
+<div id="invImgMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'bright.img',name:'Brightness / Contrast',cat:'Image',tagline:'Adjust brightness and contrast of an image',desc:'Apply pixel-level brightness (+/−255) and contrast (+/−127) adjustments using the standard Contrast Enhancement formula.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
+<input type="file" id="brightInput" accept="image/*" class="block text-sm mb-4 w-full">
+<div class="space-y-4 mb-6">
+  <div>
+    <label class="text-xs opacity-50 block mb-1">Brightness: <span id="brightLbl">0</span></label>
+    <input type="range" id="brightVal" min="-100" max="100" value="0" class="w-full max-w-xs" oninput="document.getElementById('brightLbl').textContent=this.value">
+  </div>
+  <div>
+    <label class="text-xs opacity-50 block mb-1">Contrast: <span id="contrastLbl">0</span></label>
+    <input type="range" id="contrastVal" min="-100" max="100" value="0" class="w-full max-w-xs" oninput="document.getElementById('contrastLbl').textContent=this.value">
+  </div>
+</div>
+<button class="smpl-btn" onclick="imgBright()">Apply &amp; Download</button>
+<div id="brightMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'svg.img',name:'SVG → PNG',cat:'Image',tagline:'Render an SVG file to a PNG image',desc:'Paste SVG markup or load an SVG file, then export it as a PNG at any scale multiplier.',
+render:()=>`
+<div class="flex gap-4 mb-3 flex-wrap items-end">
+  <div class="flex-1 min-w-40">
+    <label class="text-xs opacity-50 block mb-1">Load SVG File</label>
+    <input type="file" id="svgFileInput" accept=".svg,image/svg+xml" class="block text-sm w-full" onchange="svgLoadFile()">
+  </div>
+  <div class="w-24">
+    <label class="text-xs opacity-50 block mb-1">Scale</label>
+    <input type="number" id="svgScale" value="1" min="0.1" max="10" step="0.1" class="smpl-input text-sm">
+  </div>
+</div>
+<label class="text-xs opacity-50 block mb-1">SVG Code</label>
+<textarea id="svgTextarea" class="smpl-textarea mb-4" placeholder="&lt;svg xmlns=…&gt;…&lt;/svg&gt;"></textarea>
+<button class="smpl-btn" onclick="imgSvg()">Export PNG</button>
+<div id="svgMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'flip.img',name:'Flip Image',cat:'Image',tagline:'Flip an image horizontally or vertically',desc:'Mirror your image along the horizontal or vertical axis using Canvas transform operations.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
+<input type="file" id="flipInput" accept="image/*" class="block text-sm mb-6 w-full">
+<div class="flex gap-3">
+  <button class="smpl-btn" onclick="imgFlip('h')">Flip Horizontal</button>
+  <button class="smpl-btn-outline" onclick="imgFlip('v')">Flip Vertical</button>
+</div>
+<div id="flipMsg" class="text-xs mt-3" style="display:none"></div>`,
+},
+
+// ---- Dev ----
+{id:'json.csv',name:'JSON → CSV',cat:'Dev',tagline:'Convert a JSON array to CSV format',desc:'Paste a JSON array of objects and convert it to CSV. Nested objects are flattened with dot notation.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">JSON Input</label>
+<textarea id="jsonCsvInput" class="smpl-textarea mb-4" placeholder='[{"name":"Alice","age":30},{"name":"Bob","age":25}]'></textarea>
+<button class="smpl-btn mb-4" onclick="convertJsonCsv()">Convert to CSV</button>
+<div id="jsonCsvMsg" class="text-xs mb-2" style="display:none"></div>
+<div class="flex justify-between items-center mb-1">
+  <label class="text-xs opacity-50">CSV Output</label>
+  <button class="smpl-btn-outline text-xs" onclick="downloadText(document.getElementById('jsonCsvOutput').value,'output.csv','text/csv')">Download CSV</button>
+</div>
+<textarea id="jsonCsvOutput" class="smpl-textarea" readonly placeholder="CSV output…"></textarea>`},
+
+{id:'qr.gen',name:'QR Code',cat:'Dev',tagline:'Generate a QR code from any text or URL',desc:'Create QR codes at custom sizes with selectable error correction levels. Download as PNG.',
+render:()=>`
+<label class="text-xs opacity-50 block mb-1">Text or URL</label>
+<input type="text" id="qrInput" class="smpl-input text-sm mb-4" placeholder="https://example.com">
+<div class="flex gap-4 mb-6 flex-wrap">
+  <div class="flex-1 min-w-28">
+    <label class="text-xs opacity-50 block mb-1">Size (px)</label>
+    <select id="qrSize" class="smpl-select w-full text-sm">
+      <option value="128">128</option>
+      <option value="256" selected>256</option>
+      <option value="512">512</option>
+    </select>
+  </div>
+  <div class="flex-1 min-w-28">
+    <label class="text-xs opacity-50 block mb-1">Error Correction</label>
+    <select id="qrEC" class="smpl-select w-full text-sm">
+      <option value="L">L (7%)</option>
+      <option value="M" selected>M (15%)</option>
+      <option value="Q">Q (25%)</option>
+      <option value="H">H (30%)</option>
+    </select>
+  </div>
+</div>
+<div class="flex gap-3 mb-6">
+  <button class="smpl-btn" onclick="genQR()">Generate QR</button>
+  <button id="qrDlBtn" class="smpl-btn-outline" onclick="dlQR()" style="display:none">Download PNG</button>
+</div>
+<div id="qrMsg" class="text-xs mb-2" style="display:none"></div>
+<div id="qrOutput" class="mt-2"></div>`},
+
+{id:'pass.gen',name:'Password Generator',cat:'Dev',tagline:'Generate secure random passwords',desc:'Uses crypto.getRandomValues for cryptographically secure random passwords. Customise length and character sets.',
+render:()=>`
+<div class="space-y-4 mb-6">
+  <div>
+    <label class="text-xs opacity-50 block mb-1">Length: <span id="passLenVal">16</span></label>
+    <input type="range" id="passLen" min="4" max="128" value="16" class="w-full max-w-xs" oninput="document.getElementById('passLenVal').textContent=this.value">
+  </div>
+  <div class="flex flex-wrap gap-4">
+    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" id="passUpper" checked> Uppercase (A–Z)</label>
+    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" id="passLower" checked> Lowercase (a–z)</label>
+    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" id="passNums" checked> Numbers (0–9)</label>
+    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" id="passSyms"> Symbols (!@#…)</label>
+  </div>
+</div>
+<div class="flex gap-3 mb-4 flex-wrap">
+  <button class="smpl-btn" onclick="genPass()">Generate</button>
+  <button id="passCopyBtn" class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('passOutput').textContent)" style="display:none">Copy</button>
+</div>
+<div id="passMsg" class="text-xs mb-2" style="display:none"></div>
+<div id="passOutput" class="mono text-lg font-bold tracking-wider p-4 border border-[#F3F4F6] dark:border-[#262626] break-all min-h-16"></div>`},
+
+{id:'wifi.qr',name:'WiFi QR Code',cat:'Dev',tagline:'Generate a QR code to share WiFi credentials',desc:'Creates a QR code that phones can scan to automatically connect to a WiFi network.',
+render:()=>`
+<div class="space-y-4 mb-6">
+  <div><label class="text-xs opacity-50 block mb-1">Network Name (SSID)</label><input type="text" id="wifiSsid" class="smpl-input text-sm" placeholder="MyWiFi"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Password</label><input type="text" id="wifiPass" class="smpl-input text-sm" placeholder="password123"></div>
+  <div class="flex gap-4 flex-wrap">
+    <div class="flex-1 min-w-32">
+      <label class="text-xs opacity-50 block mb-1">Security</label>
+      <select id="wifiSec" class="smpl-select w-full text-sm">
+        <option value="WPA">WPA/WPA2</option>
+        <option value="WEP">WEP</option>
+        <option value="nopass">None</option>
+      </select>
+    </div>
+    <div class="flex-1 min-w-32 flex items-end pb-2">
+      <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" id="wifiHidden"> Hidden network</label>
+    </div>
+  </div>
+</div>
+<div class="flex gap-3 mb-4">
+  <button class="smpl-btn" onclick="genWifiQR()">Generate QR</button>
+  <button id="wifiDlBtn" class="smpl-btn-outline" onclick="dlWifiQR()" style="display:none">Download</button>
+</div>
+<div id="wifiMsg" class="text-xs mb-2" style="display:none"></div>
+<div id="wifiQrOutput" class="mt-2"></div>`},
+
+{id:'json.fix',name:'Format JSON',cat:'Dev',tagline:'Validate and pretty-print JSON with 2-space indent',desc:'Validates your JSON and reformats it with 2-space indentation. Errors are shown with the exact position.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">JSON Input</label>
+<textarea id="jsonFixInput" class="smpl-textarea mb-4" placeholder='{"key":"value","arr":[1,2,3]}'></textarea>
+<div class="flex gap-3 mb-4">
+  <button class="smpl-btn" onclick="fixJson()">Format JSON</button>
+  <button class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('jsonFixOutput').value)">Copy Output</button>
+</div>
+<div id="jsonFixMsg" class="text-xs mb-2" style="display:none"></div>
+<textarea id="jsonFixOutput" class="smpl-textarea" readonly placeholder="Formatted JSON…"></textarea>`},
+
+{id:'js.min',name:'Minify JS',cat:'Dev',tagline:'Strip comments and collapse whitespace in JavaScript',desc:'Removes block comments, line comments, and collapses whitespace to reduce JavaScript file size.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">JavaScript Input</label>
+<textarea id="jsMinInput" class="smpl-textarea mb-4" placeholder="// Your JavaScript code here…"></textarea>
+<div class="flex gap-3 mb-4">
+  <button class="smpl-btn" onclick="minifyJs()">Minify</button>
+  <button class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('jsMinOutput').value)">Copy Output</button>
+</div>
+<div id="jsMinMsg" class="text-xs mb-2" style="display:none"></div>
+<textarea id="jsMinOutput" class="smpl-textarea" readonly placeholder="Minified output…"></textarea>`},
+
+{id:'sql.fix',name:'Format SQL',cat:'Dev',tagline:'Uppercase keywords and add newlines to SQL',desc:'Formats SQL queries by uppercasing all reserved keywords and adding newlines before major clauses.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">SQL Input</label>
+<textarea id="sqlFixInput" class="smpl-textarea mb-4" placeholder="select id, name from users where active = 1 order by name"></textarea>
+<div class="flex gap-3 mb-4">
+  <button class="smpl-btn" onclick="fixSql()">Format SQL</button>
+  <button class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('sqlFixOutput').value)">Copy Output</button>
+</div>
+<div id="sqlFixMsg" class="text-xs mb-2" style="display:none"></div>
+<textarea id="sqlFixOutput" class="smpl-textarea" readonly placeholder="Formatted SQL…"></textarea>`},
+
+{id:'slug.gen',name:'Slug Generator',cat:'Dev',tagline:'Convert text into a URL-safe slug',desc:'Converts text to a lowercase, hyphenated URL slug. Removes accents, special characters, and collapses spaces.',
+render:()=>`
+<label class="text-xs opacity-50 block mb-1">Text Input</label>
+<input type="text" id="slugGenInput" class="smpl-input text-sm mb-6" placeholder="My Amazing Blog Post!" oninput="genSlugLive()">
+<label class="text-xs opacity-50 block mb-1">Slug Output</label>
+<div class="flex gap-3">
+  <input type="text" id="slugGenOutput" class="smpl-input text-sm flex-1 mono" readonly placeholder="my-amazing-blog-post">
+  <button class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('slugGenOutput').value)">Copy</button>
+</div>`},
+
+{id:'hex.rgb',name:'Colour Converter',cat:'Dev',tagline:'Convert between HEX, RGB, and HSL colour formats',desc:'Convert hex colour codes to RGB and HSL, or enter RGB values to get the hex code.',
+render:()=>`
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+  <div>
+    <h3 class="text-sm font-semibold mb-4">HEX → RGB / HSL</h3>
+    <div class="flex gap-3 mb-3">
+      <input type="text" id="hexInput" class="smpl-input text-sm mono flex-1" placeholder="#FF5733" oninput="hexToRgb()">
+      <div id="hexPreview" style="width:40px;height:40px;border:1px solid #F3F4F6;flex-shrink:0" class="dark:border-[#262626]"></div>
+    </div>
+    <div id="hexResult" class="mono text-sm opacity-70 min-h-6"></div>
+  </div>
+  <div>
+    <h3 class="text-sm font-semibold mb-4">RGB → HEX / HSL</h3>
+    <div class="grid grid-cols-3 gap-2 mb-3">
+      <div><label class="text-xs opacity-50 block mb-1">R</label><input type="number" id="rgbR" min="0" max="255" value="0" class="smpl-input text-sm" oninput="rgbToHex()"></div>
+      <div><label class="text-xs opacity-50 block mb-1">G</label><input type="number" id="rgbG" min="0" max="255" value="0" class="smpl-input text-sm" oninput="rgbToHex()"></div>
+      <div><label class="text-xs opacity-50 block mb-1">B</label><input type="number" id="rgbB" min="0" max="255" value="0" class="smpl-input text-sm" oninput="rgbToHex()"></div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div id="rgbPreview" style="width:40px;height:40px;border:1px solid #F3F4F6;flex-shrink:0" class="dark:border-[#262626]"></div>
+      <div id="rgbResult" class="mono text-sm opacity-70"></div>
+    </div>
+  </div>
+</div>`},
+
+{id:'base64.txt',name:'Base64',cat:'Dev',tagline:'Encode and decode Base64 strings',desc:'Encode text to Base64 or decode Base64 back to text. Handles Unicode characters correctly.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Input</label>
+<textarea id="b64TxtInput" class="smpl-textarea mb-4" placeholder="Text to encode, or Base64 to decode…"></textarea>
+<div class="flex gap-3 mb-4">
+  <button class="smpl-btn" onclick="b64Encode()">Encode →</button>
+  <button class="smpl-btn-outline" onclick="b64Decode()">← Decode</button>
+  <button class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('b64TxtOutput').value)">Copy</button>
+</div>
+<div id="b64TxtMsg" class="text-xs mb-2" style="display:none"></div>
+<textarea id="b64TxtOutput" class="smpl-textarea" readonly placeholder="Output…"></textarea>`},
+
+{id:'diff.txt',name:'Text Diff',cat:'Dev',tagline:'Compare two text blocks and highlight differences',desc:'Uses an LCS (Longest Common Subsequence) algorithm to compare two texts line by line and highlight additions and deletions.',
+render:()=>`
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+  <div><label class="text-xs opacity-50 block mb-1">Original</label><textarea id="diffA" class="smpl-textarea" placeholder="Original text…"></textarea></div>
+  <div><label class="text-xs opacity-50 block mb-1">Modified</label><textarea id="diffB" class="smpl-textarea" placeholder="Modified text…"></textarea></div>
+</div>
+<button class="smpl-btn mb-6" onclick="runDiff()">Compare</button>
+<pre id="diffOutput" class="smpl-textarea font-mono text-xs" style="min-height:120px;overflow-x:auto"></pre>`},
+
+{id:'sha.gen',name:'Hash Generator',cat:'Dev',tagline:'Generate SHA-1, SHA-256, and SHA-512 hashes',desc:'Uses the Web Crypto API (SubtleCrypto) to generate cryptographic hashes. No text leaves your browser.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Input Text</label>
+<textarea id="shaInput" class="smpl-textarea mb-4" placeholder="Text to hash…"></textarea>
+<div class="flex gap-3 mb-4">
+  <button class="smpl-btn" onclick="genSha()">Generate Hashes</button>
+</div>
+<div id="shaMsg" class="text-xs mb-2" style="display:none"></div>
+<div id="shaOutput"></div>`},
+
+{id:'glass.css',name:'Glassmorphism',cat:'Dev',tagline:'Generate glassmorphism CSS with live preview',desc:'Tune backdrop blur, tint colour, opacity, and border radius to generate a glassmorphism CSS snippet.',
+render:()=>`
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+  <div class="space-y-5">
+    <div><label class="text-xs opacity-50 block mb-1">Blur: <span id="glassBlurVal">10</span>px</label><input type="range" id="glassBlur" min="0" max="40" value="10" class="w-full" oninput="updateGlass()"></div>
+    <div><label class="text-xs opacity-50 block mb-1">BG Opacity: <span id="glassBgOpVal">0.20</span></label><input type="range" id="glassBgOp" min="0" max="1" step="0.01" value="0.20" class="w-full" oninput="updateGlass()"></div>
+    <div><label class="text-xs opacity-50 block mb-1">Border Opacity: <span id="glassBdOpVal">0.30</span></label><input type="range" id="glassBdOp" min="0" max="1" step="0.01" value="0.30" class="w-full" oninput="updateGlass()"></div>
+    <div><label class="text-xs opacity-50 block mb-1">Border Radius: <span id="glassRadVal">12</span>px</label><input type="range" id="glassRad" min="0" max="40" value="12" class="w-full" oninput="updateGlass()"></div>
+    <div><label class="text-xs opacity-50 block mb-1">Tint Colour</label><input type="color" id="glassTint" value="#ffffff" oninput="updateGlass()"></div>
+    <button class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('glassCssOutput').value)">Copy CSS</button>
+  </div>
+  <div>
+    <div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:32px;display:flex;align-items:center;justify-content:center;min-height:200px;">
+      <div id="glassPreview" style="width:160px;height:100px;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;font-family:Inter,sans-serif;">glass</div>
+    </div>
+    <textarea id="glassCssOutput" class="smpl-textarea mt-4" readonly style="min-height:120px;font-size:12px"></textarea>
+  </div>
+</div>`},
+
+{id:'html.strip',name:'Strip HTML',cat:'Dev',tagline:'Remove all HTML tags from text',desc:'Parses HTML using the browser\'s DOMParser and extracts pure text content, removing all tags and attributes.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">HTML Input</label>
+<textarea id="htmlStripInput" class="smpl-textarea mb-4" placeholder="&lt;p&gt;Hello &lt;strong&gt;world&lt;/strong&gt;&lt;/p&gt;"></textarea>
+<div class="flex gap-3 mb-4">
+  <button class="smpl-btn" onclick="stripHtml()">Strip HTML</button>
+  <button class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('htmlStripOutput').value)">Copy</button>
+</div>
+<div id="htmlStripMsg" class="text-xs mb-2" style="display:none"></div>
+<textarea id="htmlStripOutput" class="smpl-textarea" readonly placeholder="Plain text output…"></textarea>`},
+
+{id:'yaml.json',name:'YAML → JSON',cat:'Dev',tagline:'Convert YAML to JSON',desc:'Parses YAML markup using a built-in parser and converts it to formatted JSON. Supports nested objects, arrays, and scalar types.',
+render:()=>`
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+  <div><label class="text-xs opacity-50 block mb-1">YAML Input</label><textarea id="yamlInput" class="smpl-textarea" placeholder="name: Alice&#10;age: 30&#10;tags:&#10;  - dev&#10;  - design"></textarea></div>
+  <div>
+    <div class="flex justify-between items-center mb-1">
+      <label class="text-xs opacity-50">JSON Output</label>
+      <button class="smpl-btn-outline text-xs" onclick="copyToClipboard(document.getElementById('yamlOutput').value)">Copy</button>
+    </div>
+    <textarea id="yamlOutput" class="smpl-textarea" readonly placeholder="JSON output…"></textarea>
+  </div>
+</div>
+<div class="flex gap-3">
+  <button class="smpl-btn" onclick="convertYamlJson()">Convert</button>
+</div>
+<div id="yamlMsg" class="text-xs mt-3" style="display:none"></div>`,
+},
+
+// ---- Doc ----
+{id:'case.txt',name:'Case Converter',cat:'Doc',tagline:'Transform text between 8 different case styles',desc:'Convert text to uppercase, lowercase, title case, camelCase, snake_case, kebab-case, PascalCase, or SCREAMING_SNAKE_CASE.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Input Text</label>
+<textarea id="caseTxtInput" class="smpl-textarea mb-4" placeholder="Enter your text here…"></textarea>
+<div class="flex flex-wrap gap-2 mb-4">
+  <button class="smpl-btn-outline" onclick="caseTransform('upper')">UPPER</button>
+  <button class="smpl-btn-outline" onclick="caseTransform('lower')">lower</button>
+  <button class="smpl-btn-outline" onclick="caseTransform('title')">Title Case</button>
+  <button class="smpl-btn-outline" onclick="caseTransform('camel')">camelCase</button>
+  <button class="smpl-btn-outline" onclick="caseTransform('snake')">snake_case</button>
+  <button class="smpl-btn-outline" onclick="caseTransform('kebab')">kebab-case</button>
+  <button class="smpl-btn-outline" onclick="caseTransform('pascal')">PascalCase</button>
+  <button class="smpl-btn-outline" onclick="caseTransform('scream')">SCREAM_CASE</button>
+</div>
+<div class="flex justify-between items-center mb-1">
+  <label class="text-xs opacity-50">Output</label>
+  <button class="smpl-btn-outline text-xs" onclick="copyToClipboard(document.getElementById('caseTxtOutput').value)">Copy</button>
+</div>
+<textarea id="caseTxtOutput" class="smpl-textarea" readonly placeholder="Converted text…"></textarea>`},
+
+{id:'hand.txt',name:'Handwriting',cat:'Doc',tagline:'Render text in a handwriting style on lined paper',desc:'Converts your text to a handwriting-style PNG on lined paper. Uses the Caveat font for a natural writing look.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Text</label>
+<textarea id="handInput" class="smpl-textarea mb-4" placeholder="Write your text here…"></textarea>
+<div class="flex gap-4 mb-6 flex-wrap">
+  <div class="flex-1 min-w-28">
+    <label class="text-xs opacity-50 block mb-1">Font Size</label>
+    <input type="number" id="handSize" value="22" min="12" max="48" class="smpl-input text-sm">
+  </div>
+  <div class="flex-1 min-w-28">
+    <label class="text-xs opacity-50 block mb-1">Line Height</label>
+    <input type="number" id="handLine" value="38" min="20" max="80" class="smpl-input text-sm">
+  </div>
+</div>
+<button class="smpl-btn" onclick="renderHandwriting()">Render &amp; Download</button>
+<div id="handMsg" class="text-xs mt-3" style="display:none"></div>
+<canvas id="handCanvas" style="display:none;max-width:100%;margin-top:16px;border:1px solid #F3F4F6" class="dark:border-[#262626]"></canvas>`},
+
+{id:'word.txt',name:'Word Counter',cat:'Doc',tagline:'Count words, characters, sentences, and reading time',desc:'Analyses your text and provides detailed statistics including word count, character count, unique words, sentence count, paragraph count, and estimated reading and speaking times.',
+render:()=>`
+<textarea id="wordInput" class="smpl-textarea mb-4" placeholder="Paste your text here…" oninput="countWords()"></textarea>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+  <div class="border border-[#F3F4F6] dark:border-[#262626] p-4"><div class="text-2xl font-bold mono" id="wWords">0</div><div class="text-xs opacity-50 mt-1">Words</div></div>
+  <div class="border border-[#F3F4F6] dark:border-[#262626] p-4"><div class="text-2xl font-bold mono" id="wChars">0</div><div class="text-xs opacity-50 mt-1">Characters</div></div>
+  <div class="border border-[#F3F4F6] dark:border-[#262626] p-4"><div class="text-2xl font-bold mono" id="wNoSp">0</div><div class="text-xs opacity-50 mt-1">No spaces</div></div>
+  <div class="border border-[#F3F4F6] dark:border-[#262626] p-4"><div class="text-2xl font-bold mono" id="wSent">0</div><div class="text-xs opacity-50 mt-1">Sentences</div></div>
+  <div class="border border-[#F3F4F6] dark:border-[#262626] p-4"><div class="text-2xl font-bold mono" id="wPara">0</div><div class="text-xs opacity-50 mt-1">Paragraphs</div></div>
+  <div class="border border-[#F3F4F6] dark:border-[#262626] p-4"><div class="text-2xl font-bold mono" id="wUniq">0</div><div class="text-xs opacity-50 mt-1">Unique words</div></div>
+  <div class="border border-[#F3F4F6] dark:border-[#262626] p-4"><div class="text-2xl font-bold mono" id="wRead">—</div><div class="text-xs opacity-50 mt-1">Read time</div></div>
+  <div class="border border-[#F3F4F6] dark:border-[#262626] p-4"><div class="text-2xl font-bold mono" id="wSpeak">—</div><div class="text-xs opacity-50 mt-1">Speak time</div></div>
+</div>`},
+
+{id:'clean.txt',name:'Clean Text',cat:'Doc',tagline:'Remove invisible characters and fix spacing',desc:'Cleans up pasted text by removing invisible Unicode characters, collapsing multiple spaces, and removing blank lines.',
+render:()=>`
+<textarea id="cleanInput" class="smpl-textarea mb-4" placeholder="Paste messy text here…"></textarea>
+<div class="flex flex-wrap gap-4 mb-6">
+  <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" id="cleanInvis" checked> Remove invisible chars</label>
+  <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" id="cleanMulti" checked> Collapse spaces/tabs</label>
+  <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" id="cleanEmpty" checked> Remove excess blank lines</label>
+  <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" id="cleanTrim" checked> Trim whitespace</label>
+</div>
+<div class="flex gap-3 mb-4">
+  <button class="smpl-btn" onclick="cleanText()">Clean</button>
+  <button class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('cleanOutput').value)">Copy Output</button>
+</div>
+<div id="cleanMsg" class="text-xs mb-2" style="display:none"></div>
+<textarea id="cleanOutput" class="smpl-textarea" readonly placeholder="Cleaned text…"></textarea>`},
+
+{id:'cite.txt',name:'Citation Generator',cat:'Doc',tagline:'Generate APA, MLA, or Chicago citations',desc:'Fill in the publication details and get a formatted citation in APA, MLA, or Chicago style.',
+render:()=>`
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+  <div><label class="text-xs opacity-50 block mb-1">Author(s)</label><input type="text" id="citeAuthor" class="smpl-input text-sm" placeholder="Smith, J."></div>
+  <div><label class="text-xs opacity-50 block mb-1">Year</label><input type="text" id="citeYear" class="smpl-input text-sm" placeholder="2024"></div>
+  <div class="md:col-span-2"><label class="text-xs opacity-50 block mb-1">Title</label><input type="text" id="citeTitle" class="smpl-input text-sm" placeholder="The Title of the Work"></div>
+  <div class="md:col-span-2"><label class="text-xs opacity-50 block mb-1">Journal/Publisher</label><input type="text" id="citePublisher" class="smpl-input text-sm" placeholder="Journal of Examples"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Volume/Issue</label><input type="text" id="citeVolIssue" class="smpl-input text-sm" placeholder="12(3)"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Pages</label><input type="text" id="citePages" class="smpl-input text-sm" placeholder="45–67"></div>
+  <div class="md:col-span-2"><label class="text-xs opacity-50 block mb-1">URL (optional)</label><input type="text" id="citeUrl" class="smpl-input text-sm" placeholder="https://…"></div>
+</div>
+<div class="flex gap-4 mb-4 flex-wrap items-end">
+  <div>
+    <label class="text-xs opacity-50 block mb-1">Style</label>
+    <select id="citeStyle" class="smpl-select text-sm">
+      <option value="apa">APA</option>
+      <option value="mla">MLA</option>
+      <option value="chicago">Chicago</option>
+    </select>
+  </div>
+  <button class="smpl-btn" onclick="genCite()">Generate Citation</button>
+  <button id="citeCopyBtn" class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('citeOutput').textContent)" style="display:none">Copy</button>
+</div>
+<div id="citeOutput" class="p-4 border border-[#F3F4F6] dark:border-[#262626] text-sm leading-relaxed" style="display:none"></div>`},
+
+{id:'lorem.txt',name:'Lorem Ipsum',cat:'Doc',tagline:'Generate placeholder lorem ipsum paragraphs',desc:'Generate lorem ipsum placeholder text. Choose the number of paragraphs or sentences, and whether to start with the classic opening.',
+render:()=>`
+<div class="flex gap-4 mb-6 flex-wrap">
+  <div class="flex-1 min-w-28">
+    <label class="text-xs opacity-50 block mb-1">Count</label>
+    <input type="number" id="loremCount" value="3" min="1" max="20" class="smpl-input text-sm">
+  </div>
+  <div class="flex-1 min-w-28">
+    <label class="text-xs opacity-50 block mb-1">Type</label>
+    <select id="loremType" class="smpl-select w-full text-sm">
+      <option value="paragraph">Paragraphs</option>
+      <option value="sentence">Sentences</option>
+    </select>
+  </div>
+  <div class="flex items-end pb-1 min-w-40">
+    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" id="loremClassic" checked> Start with classic opening</label>
+  </div>
+</div>
+<div class="flex gap-3 mb-4">
+  <button class="smpl-btn" onclick="genLorem()">Generate</button>
+  <button class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('loremOutput').value)">Copy</button>
+</div>
+<textarea id="loremOutput" class="smpl-textarea" readonly placeholder="Lorem ipsum output…" style="min-height:200px"></textarea>`},
+
+{id:'sort.txt',name:'Sort Lines',cat:'Doc',tagline:'Sort lines of text alphabetically or by length',desc:'Paste text with one item per line and sort it in multiple ways.',
+render:()=>`
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+  <div><label class="text-xs opacity-50 block mb-1">Input</label><textarea id="sortInput" class="smpl-textarea" placeholder="One line&#10;Per item&#10;To sort"></textarea></div>
+  <div>
+    <div class="flex justify-between items-center mb-1">
+      <label class="text-xs opacity-50">Output</label>
+      <button class="smpl-btn-outline text-xs" onclick="copyToClipboard(document.getElementById('sortOutput').value)">Copy</button>
+    </div>
+    <textarea id="sortOutput" class="smpl-textarea" readonly placeholder="Sorted output…"></textarea>
+  </div>
+</div>
+<div class="flex flex-wrap gap-2">
+  <button class="smpl-btn-outline" onclick="sortText('az')">A → Z</button>
+  <button class="smpl-btn-outline" onclick="sortText('za')">Z → A</button>
+  <button class="smpl-btn-outline" onclick="sortText('len')">Shortest first</button>
+  <button class="smpl-btn-outline" onclick="sortText('lendesc')">Longest first</button>
+  <button class="smpl-btn-outline" onclick="sortText('rand')">Shuffle</button>
+</div>`},
+
+{id:'dupe.txt',name:'Remove Duplicates',cat:'Doc',tagline:'Remove duplicate lines from a text block',desc:'Removes duplicate lines while preserving order. Optionally case-insensitive.',
+render:()=>`
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+  <div><label class="text-xs opacity-50 block mb-1">Input</label><textarea id="dupeInput" class="smpl-textarea" placeholder="line 1&#10;line 2&#10;line 1&#10;line 3"></textarea></div>
+  <div>
+    <div class="flex justify-between items-center mb-1">
+      <label class="text-xs opacity-50">Output</label>
+      <button class="smpl-btn-outline text-xs" onclick="copyToClipboard(document.getElementById('dupeOutput').value)">Copy</button>
+    </div>
+    <textarea id="dupeOutput" class="smpl-textarea" readonly placeholder="Deduplicated…"></textarea>
+  </div>
+</div>
+<div class="flex gap-4 items-center flex-wrap">
+  <button class="smpl-btn" onclick="removeDupes()">Remove Duplicates</button>
+  <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" id="dupeCi"> Case-insensitive</label>
+</div>
+<div id="dupeStats" class="text-xs opacity-60 mt-3"></div>`},
+
+{id:'view.md',name:'Markdown Preview',cat:'Doc',tagline:'Live Markdown editor with rendered preview',desc:'Type Markdown on the left and see the rendered HTML preview on the right in real time. Uses marked.js.',
+render:()=>`
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4" style="min-height:400px">
+  <div class="flex flex-col">
+    <label class="text-xs opacity-50 block mb-1">Markdown</label>
+    <textarea id="mdInput" class="smpl-textarea flex-1" style="min-height:360px;resize:none" placeholder="# Hello world&#10;&#10;**Bold**, *italic*, \`code\`…" oninput="updateMdPreview()"></textarea>
+  </div>
+  <div class="flex flex-col">
+    <label class="text-xs opacity-50 block mb-1">Preview</label>
+    <div id="mdPreview" class="border border-[#F3F4F6] dark:border-[#262626] p-4 flex-1 overflow-auto text-sm leading-relaxed" style="min-height:360px"></div>
+  </div>
+</div>`},
+
+{id:'read.txt',name:'Readability',cat:'Doc',tagline:'Analyse the reading level of text',desc:'Calculates Flesch Reading Ease and Flesch-Kincaid Grade Level scores. Lower grade = easier to read.',
+render:()=>`
+<textarea id="readInput" class="smpl-textarea mb-4" placeholder="Paste your text here to analyse its readability…" oninput="analyzeReadability()"></textarea>
+<div id="readOutput"></div>`},
+
+{id:'bin.txt',name:'Binary Encoder',cat:'Doc',tagline:'Convert text to binary and back',desc:'Converts text to 8-bit binary representation (space-separated) and decodes binary back to text.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Input</label>
+<textarea id="binInput" class="smpl-textarea mb-4" placeholder="Enter text or binary…"></textarea>
+<div class="flex gap-3 mb-4">
+  <button class="smpl-btn" onclick="binEncode()">Text → Binary</button>
+  <button class="smpl-btn-outline" onclick="binDecode()">Binary → Text</button>
+  <button class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('binOutput').value)">Copy</button>
+</div>
+<textarea id="binOutput" class="smpl-textarea" readonly placeholder="Output…"></textarea>`},
+
+{id:'rev.txt',name:'Reverse Text',cat:'Doc',tagline:'Reverse characters or word order in text',desc:'Reverse the order of characters in your text, or reverse the order of words while keeping each word intact.',
+render:()=>`
+<textarea id="revInput" class="smpl-textarea mb-4" placeholder="Text to reverse…"></textarea>
+<div class="flex gap-3 mb-4">
+  <button class="smpl-btn" onclick="revText('chars')">Reverse Characters</button>
+  <button class="smpl-btn-outline" onclick="revText('words')">Reverse Words</button>
+  <button class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('revOutput').value)">Copy</button>
+</div>
+<textarea id="revOutput" class="smpl-textarea" readonly placeholder="Reversed output…"></textarea>`},
+
+{id:'find.txt',name:'Find &amp; Replace',cat:'Doc',tagline:'Search and replace text with regex support',desc:'Find and replace text with optional case sensitivity and regex pattern support.',
+render:()=>`
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+  <div><label class="text-xs opacity-50 block mb-1">Find</label><input type="text" id="findInput" class="smpl-input text-sm" placeholder="Search pattern…"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Replace with</label><input type="text" id="replaceInput" class="smpl-input text-sm" placeholder="Replacement…"></div>
+</div>
+<div class="flex flex-wrap gap-4 mb-4">
+  <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" id="findRegex"> Use regex</label>
+  <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" id="findCase"> Case-sensitive</label>
+</div>
+<label class="text-xs opacity-50 block mb-1">Text</label>
+<textarea id="findText" class="smpl-textarea mb-4" placeholder="Text to search and replace in…"></textarea>
+<div class="flex gap-3 mb-4">
+  <button class="smpl-btn" onclick="findReplace()">Replace</button>
+  <button class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('findOutput').value)">Copy Output</button>
+</div>
+<div id="findStats" class="text-xs opacity-60 mb-2" style="display:none"></div>
+<textarea id="findOutput" class="smpl-textarea" readonly placeholder="Result…"></textarea>`},
+
+{id:'morse.txt',name:'Morse Code',cat:'Doc',tagline:'Encode and decode Morse code',desc:'Convert text to Morse code dots and dashes, or decode Morse code back to text. Word boundaries use " / ".',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Input</label>
+<textarea id="morseInput" class="smpl-textarea mb-4" placeholder="Enter text or Morse code (e.g. ... --- ...)"></textarea>
+<div class="flex gap-3 mb-4">
+  <button class="smpl-btn" onclick="morseEncode()">Text → Morse</button>
+  <button class="smpl-btn-outline" onclick="morseDecode()">Morse → Text</button>
+  <button class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('morseOutput').value)">Copy</button>
+</div>
+<textarea id="morseOutput" class="smpl-textarea" readonly placeholder="Output…"></textarea>
+<p class="text-xs opacity-40 mt-2">Morse word separator: " / " (space-slash-space)</p>`},
+
+{id:'slug.txt',name:'URL Slug',cat:'Doc',tagline:'Convert text to a URL-safe slug',desc:'Converts text to a lowercase, hyphenated URL slug with accent and special character removal.',
+render:()=>`
+<label class="text-xs opacity-50 block mb-1">Text Input</label>
+<input type="text" id="slugTxtInput" class="smpl-input text-sm mb-6" placeholder="My Amazing Blog Post Title!" oninput="genSlugTxtLive()">
+<label class="text-xs opacity-50 block mb-1">Slug</label>
+<div class="flex gap-3">
+  <input type="text" id="slugTxtOutput" class="smpl-input mono text-sm flex-1" readonly placeholder="my-amazing-blog-post-title">
+  <button class="smpl-btn-outline" onclick="copyToClipboard(document.getElementById('slugTxtOutput').value)">Copy</button>
+</div>`,
+},
+
+// ---- Misc ----
+{id:'unix.time',name:'Unix Timestamp',cat:'Misc',tagline:'Convert Unix timestamps to human-readable dates',desc:'Convert Unix timestamps (seconds or milliseconds) to readable date formats, or get the current timestamp.',
+render:()=>`
+<div class="mb-6 border border-[#F3F4F6] dark:border-[#262626] p-4">
+  <div class="text-xs opacity-50 mb-1">Current Unix Timestamp</div>
+  <div class="text-2xl font-bold mono" id="currentEpoch"></div>
+  <button class="smpl-btn-outline text-xs mt-2" onclick="setCurrentEpoch()">Use this timestamp</button>
+</div>
+<label class="text-xs opacity-50 block mb-1">Timestamp (seconds or ms)</label>
+<div class="flex gap-3 mb-6">
+  <input type="text" id="unixInput" class="smpl-input text-sm mono flex-1" placeholder="1700000000">
+  <button class="smpl-btn" onclick="convertUnix()">Convert</button>
+</div>
+<div id="unixMsg" class="text-xs mb-2" style="display:none"></div>
+<div id="unixOutput"></div>`},
+
+{id:'unit.conv',name:'Unit Converter',cat:'Misc',tagline:'Convert between length, weight, and temperature units',desc:'Convert values between common measurement units across length, weight, and temperature categories.',
+render:()=>`
+<div class="space-y-4 mb-6">
+  <div>
+    <label class="text-xs opacity-50 block mb-1">Category</label>
+    <select id="unitCat" class="smpl-select text-sm" onchange="unitCatChange()">
+      <option value="length">Length</option>
+      <option value="weight">Weight</option>
+      <option value="temp">Temperature</option>
+    </select>
+  </div>
+  <div class="flex gap-4 flex-wrap">
+    <div class="flex-1 min-w-28">
+      <label class="text-xs opacity-50 block mb-1">Value</label>
+      <input type="number" id="unitVal" class="smpl-input text-sm" placeholder="100" oninput="convertUnit()">
+    </div>
+    <div class="flex-1 min-w-28">
+      <label class="text-xs opacity-50 block mb-1">From</label>
+      <select id="unitFrom" class="smpl-select w-full text-sm" onchange="convertUnit()">
+        <option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option>
+        <option value="km">km</option><option value="in">in</option><option value="ft">ft</option>
+        <option value="yd">yd</option><option value="mi">mi</option>
+      </select>
+    </div>
+    <div class="flex-1 min-w-28">
+      <label class="text-xs opacity-50 block mb-1">To</label>
+      <select id="unitTo" class="smpl-select w-full text-sm" onchange="convertUnit()">
+        <option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option>
+        <option value="km">km</option><option value="in">in</option><option value="ft">ft</option>
+        <option value="yd">yd</option><option value="mi">mi</option>
+      </select>
+    </div>
+  </div>
+</div>
+<div id="unitResult" class="text-xl font-bold mono p-4 border border-[#F3F4F6] dark:border-[#262626]"></div>`},
+
+{id:'rec.audio',name:'Audio Recorder',cat:'Misc',tagline:'Record audio from your microphone',desc:'Records audio from your microphone. Requires microphone permission. Output is WebM audio.',
+render:()=>`
+<div class="mb-6">
+  <div id="audioStatus" class="text-sm opacity-60 mb-4">Click Start to begin recording.</div>
+  <div class="text-3xl font-bold mono mb-6" id="audioTimer">00:00</div>
+  <div class="flex gap-3">
+    <button id="audioStartBtn" class="smpl-btn" onclick="startAudioRec()">Start Recording</button>
+    <button id="audioStopBtn" class="smpl-btn-outline" onclick="stopAudioRec()" style="display:none">Stop</button>
+    <button id="audioDlBtn" class="smpl-btn-outline" style="display:none">Download</button>
+  </div>
+</div>
+<audio id="audioPlayback" controls style="display:none;width:100%;margin-top:8px" class="mt-4"></audio>`},
+
+{id:'rec.video',name:'Screen Recorder',cat:'Misc',tagline:'Capture your screen as a WebM video',desc:'Records your screen (or a specific window/tab) using the Screen Capture API. Output is WebM video.',
+render:()=>`
+<div class="mb-6">
+  <div id="videoStatus" class="text-sm opacity-60 mb-4">Click Start to choose what to record.</div>
+  <div class="text-3xl font-bold mono mb-6" id="videoTimer">00:00</div>
+  <div class="flex gap-3">
+    <button id="videoStartBtn" class="smpl-btn" onclick="startVideoRec()">Start Recording</button>
+    <button id="videoStopBtn" class="smpl-btn-outline" onclick="stopVideoRec()" style="display:none">Stop</button>
+    <button id="videoDlBtn" class="smpl-btn-outline" style="display:none">Download</button>
+  </div>
+</div>
+<video id="videoPlayback" controls style="display:none;width:100%;max-height:300px;margin-top:8px" class="mt-4"></video>`},
+
+{id:'pomo.timer',name:'Pomodoro Timer',cat:'Misc',tagline:'Focus timer with customisable work/break intervals',desc:'A Pomodoro technique timer with configurable work and break durations. Automatically cycles between work and break sessions.',
+render:()=>`
+<div class="text-center max-w-xs mx-auto py-8">
+  <div class="text-xs uppercase tracking-widest opacity-40 mb-2" id="pomoModeLabel">Work</div>
+  <div class="text-7xl font-bold mono mb-8" id="pomoDisplay">25:00</div>
+  <div class="flex gap-3 justify-center mb-8">
+    <button id="pomoStartBtn" class="smpl-btn" onclick="startPomo()">Start</button>
+    <button id="pomoPauseBtn" class="smpl-btn-outline" onclick="pausePomo()" style="display:none">Pause</button>
+    <button class="smpl-btn-outline" onclick="resetPomo()">Reset</button>
+  </div>
+  <div class="flex gap-4 justify-center">
+    <div class="flex-1">
+      <label class="text-xs opacity-50 block mb-1">Work (min)</label>
+      <input type="number" id="pomoWork" value="25" min="1" max="60" class="smpl-input text-sm text-center">
+    </div>
+    <div class="flex-1">
+      <label class="text-xs opacity-50 block mb-1">Break (min)</label>
+      <input type="number" id="pomoBreak" value="5" min="1" max="30" class="smpl-input text-sm text-center">
+    </div>
+  </div>
+</div>`,
+},
+]; // END REGISTRY
+
+// ============================================================
+// GRID & SEARCH
+// ============================================================
+let currentCat = 'ALL';
+
+function renderGrid(tools) {
+  const grid = document.getElementById('masterGrid');
+  const noRes = document.getElementById('noResults');
+  grid.innerHTML = '';
+  if (!tools.length) {
+    grid.style.display = 'none';
+    noRes.style.display = 'block';
+    return;
+  }
+  grid.style.display = '';
+  noRes.style.display = 'none';
+  tools.forEach(tool => {
+    const card = document.createElement('div');
+    card.className = 'smpl-card';
+    card.onclick = () => openTool(tool.id);
+    card.innerHTML = `<div class="cat-badge">${tool.cat}</div><div class="tool-name">${tool.name}</div><p class="tool-tagline">${tool.tagline}</p>`;
+    grid.appendChild(card);
+  });
+}
+
+function filterTools() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const filtered = registry.filter(t => {
+    const matchCat = currentCat === 'ALL' || t.cat === currentCat;
+    const matchQ = !q || t.name.toLowerCase().includes(q) || t.tagline.toLowerCase().includes(q) || t.id.toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+  renderGrid(filtered);
+}
+
+function setCat(cat) {
+  currentCat = cat;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
+  const btn = document.querySelector(`.tab-btn[data-cat="${cat}"]`);
+  if (btn) btn.classList.add('active-tab');
+  filterTools();
+}
+
+// ============================================================
+// TOOL OPENING
+// ============================================================
+function openTool(id) {
+  const tool = registry.find(t => t.id === id);
+  if (!tool) return;
+  document.getElementById('workspaceContent').innerHTML = `
+    <button onclick="showSection('home')" class="smpl-btn-outline text-xs mb-8">← Back to Tools</button>
+    <div class="mb-8">
+      <div class="cat-badge mb-2">${tool.cat}</div>
+      <h1 class="text-3xl font-bold mono mb-2">${tool.name}</h1>
+      <p class="text-sm opacity-60 max-w-lg leading-relaxed">${tool.tagline}</p>
+    </div>
+    <details class="mb-8" open>
+      <summary class="text-xs uppercase tracking-widest opacity-50 cursor-pointer hover:opacity-100 transition-opacity select-none list-none flex items-center gap-2">
+        <span id="detailsArrow">▸</span> About this tool
+      </summary>
+      <p class="text-sm opacity-60 leading-relaxed mt-4 max-w-2xl">${tool.desc}</p>
+    </details>
+    <div class="max-w-3xl">
+      ${tool.render()}
+    </div>
+  `;
+  showSection('workspace');
+  // Post-render hooks
+  if (tool.id === 'glass.css') setTimeout(updateGlass, 50);
+  if (tool.id === 'unix.time') setTimeout(startEpochClock, 50);
+  if (tool.id === 'pomo.timer') { pomoSecs=0; pomoRunning=false; setTimeout(updatePomoDisplay, 50); }
+  if (tool.id === 'unit.conv') setTimeout(unitCatChange, 50);
+}
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  // Restore dark mode
+  const dark = localStorage.getItem('smpl-dark');
+  if (dark === '1' || (dark === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark');
+    const btn = document.getElementById('darkBtn');
+    btn.textContent = '◑';
+    btn.setAttribute('aria-pressed', 'true');
+  }
+  // Render all tools
+  renderGrid(registry);
+});
+</script>
 </body>
 </html>
