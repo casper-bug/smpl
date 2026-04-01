@@ -605,7 +605,7 @@ async function pdfCrop() {
 async function pdfInvert() {
   const inp = document.getElementById('invPdfInput');
   if (!inp.files[0]) { showMsg('invPdfMsg','Select a PDF file',true); return; }
-  showMsg('invPdfMsg','⚠ True color inversion requires PDF.js (not available here). Saving original PDF. Use your PDF viewer's dark mode or accessibility inversion for visual inversion.');
+  showMsg('invPdfMsg','⚠ True color inversion requires PDF.js (not available here). Saving original PDF. Use your PDF viewer\'s dark mode or accessibility inversion for visual inversion.');
   try {
     const buf = await inp.files[0].arrayBuffer();
     const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
