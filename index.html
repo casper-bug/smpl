@@ -1254,27 +1254,27 @@ function cropRender() {
     cropCtx.beginPath(); cropCtx.moveTo(rx, ry + rh*f); cropCtx.lineTo(rx+rw, ry + rh*f); cropCtx.stroke();
   });
   // Corner handles
-  const hs = 8;
-  const corners = [[rx,ry],[rx+rw-hs,ry],[rx,ry+rh-hs],[rx+rw-hs,ry+rh-hs]];
+  const handleSize = 8;
+  const corners = [[rx,ry],[rx+rw-handleSize,ry],[rx,ry+rh-handleSize],[rx+rw-handleSize,ry+rh-handleSize]];
   cropCtx.fillStyle = '#fff';
-  corners.forEach(([hx,hy]) => cropCtx.fillRect(hx, hy, hs, hs));
+  corners.forEach(([hx,hy]) => cropCtx.fillRect(hx, hy, handleSize, handleSize));
   // Edge handles
-  cropCtx.fillRect(rx + rw/2 - hs/2, ry, hs, hs);
-  cropCtx.fillRect(rx + rw/2 - hs/2, ry+rh-hs, hs, hs);
-  cropCtx.fillRect(rx, ry + rh/2 - hs/2, hs, hs);
-  cropCtx.fillRect(rx+rw-hs, ry + rh/2 - hs/2, hs, hs);
+  cropCtx.fillRect(rx + rw/2 - handleSize/2, ry, handleSize, handleSize);
+  cropCtx.fillRect(rx + rw/2 - handleSize/2, ry+rh-handleSize, handleSize, handleSize);
+  cropCtx.fillRect(rx, ry + rh/2 - handleSize/2, handleSize, handleSize);
+  cropCtx.fillRect(rx+rw-handleSize, ry + rh/2 - handleSize/2, handleSize, handleSize);
 }
 
 function cropHitHandle(x, y) {
   const rx = cropRect.x * cropScale, ry = cropRect.y * cropScale;
   const rw = cropRect.w * cropScale, rh = cropRect.h * cropScale;
-  const hs = 12;
+  const hitboxSize = 12;
   const handles = [
-    {n:'nw',x:rx,y:ry},{n:'n',x:rx+rw/2-hs/2,y:ry},{n:'ne',x:rx+rw-hs,y:ry},
-    {n:'w',x:rx,y:ry+rh/2-hs/2},{n:'e',x:rx+rw-hs,y:ry+rh/2-hs/2},
-    {n:'sw',x:rx,y:ry+rh-hs},{n:'s',x:rx+rw/2-hs/2,y:ry+rh-hs},{n:'se',x:rx+rw-hs,y:ry+rh-hs}
+    {n:'nw',x:rx,y:ry},{n:'n',x:rx+rw/2-hitboxSize/2,y:ry},{n:'ne',x:rx+rw-hitboxSize,y:ry},
+    {n:'w',x:rx,y:ry+rh/2-hitboxSize/2},{n:'e',x:rx+rw-hitboxSize,y:ry+rh/2-hitboxSize/2},
+    {n:'sw',x:rx,y:ry+rh-hitboxSize},{n:'s',x:rx+rw/2-hitboxSize/2,y:ry+rh-hitboxSize},{n:'se',x:rx+rw-hitboxSize,y:ry+rh-hitboxSize}
   ];
-  for (const h of handles) if (x>=h.x && x<=h.x+hs && y>=h.y && y<=h.y+hs) return h.n;
+  for (const h of handles) if (x>=h.x && x<=h.x+hitboxSize && y>=h.y && y<=h.y+hitboxSize) return h.n;
   if (x>=rx && x<=rx+rw && y>=ry && y<=ry+rh) return 'move';
   return null;
 }
