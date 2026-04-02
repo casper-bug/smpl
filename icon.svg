@@ -1,13 +1,8 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <style><![CDATA[
-      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&display=swap');
-      text { font-family: 'JetBrains Mono', 'Courier New', monospace; }
-    ]]></style>
-  </defs>
   <rect width="512" height="512" rx="96" fill="#000000"/>
   <text x="50%" y="52%"
         fill="#ffffff"
+        font-family="'Courier New', monospace"
         font-size="140"
         font-weight="700"
         letter-spacing="1"
