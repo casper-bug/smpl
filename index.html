@@ -937,35 +937,103 @@ async function pdfPaginate() {
 }
 
 // ── organize.pdf ──────────────────────────────────────────
-let orgPages = [], orgDragSrc = null;
+let orgPages = [], orgDragSrc = null, orgPdfJsLoading = false;
+
+async function orgEnsurePdfJs() {
+  if (window.pdfjsLib) return true;
+  if (orgPdfJsLoading) return false;
+  orgPdfJsLoading = true;
+  try {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    return true;
+  } catch(e) { return false; }
+}
+
 async function orgLoad() {
   const inp = document.getElementById('organizeInput');
   if (!inp || !inp.files[0]) return;
-  showMsg('orgMsg','Loading…');
+  showMsg('orgMsg', 'Loading…');
   try {
     const buf = await inp.files[0].arrayBuffer();
     const doc = await PDFLib.PDFDocument.load(buf, {ignoreEncryption:true});
-    orgPages = Array.from({length: doc.getPageCount()}, (_,i) => ({idx:i, rot:0, deleted:false}));
+    const count = doc.getPageCount();
+    orgPages = Array.from({length: count}, (_, i) => ({idx:i, rot:0, deleted:false, thumb:null}));
     renderOrgList();
     document.getElementById('orgSaveBtn').style.display = '';
-    showMsg('orgMsg', `Loaded ${doc.getPageCount()} pages — drag to reorder, rotate or delete`);
-  } catch(e) { showMsg('orgMsg','Error: '+e.message,true); }
+    showMsg('orgMsg', `Loaded ${count} page${count!==1?'s':''} — rendering thumbnails…`);
+    // Render thumbnails in background; pass a copy of the buffer so pdf-lib's copy isn't detached
+    orgRenderThumbs(buf.slice(0), count);
+  } catch(e) { showMsg('orgMsg', 'Error: '+e.message, true); }
 }
+
+async function orgRenderThumbs(buf, count) {
+  const ok = await orgEnsurePdfJs();
+  if (!ok) { showMsg('orgMsg', `Loaded ${count} pages (thumbnails unavailable — check network)`); return; }
+  try {
+    const pdfDoc = await window.pdfjsLib.getDocument({data: new Uint8Array(buf)}).promise;
+    for (let i = 0; i < count; i++) {
+      if (!orgPages[i] || orgPages[i].deleted) continue;
+      const page = await pdfDoc.getPage(i + 1);
+      const THUMB_W = 96;
+      const vp0 = page.getViewport({scale: 1});
+      const scale = THUMB_W / vp0.width;
+      const viewport = page.getViewport({scale});
+      const canvas = document.createElement('canvas');
+      canvas.width  = Math.round(viewport.width);
+      canvas.height = Math.round(viewport.height);
+      await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
+      orgPages[i].thumb = canvas.toDataURL('image/jpeg', 0.75);
+      // Update img in place so existing drag state isn't disrupted
+      const imgEl = document.querySelector(`#orgList [data-pageidx="${i}"] .org-thumb-img`);
+      if (imgEl) {
+        imgEl.src = orgPages[i].thumb;
+        imgEl.style.display = 'block';
+        const placeholder = imgEl.previousElementSibling;
+        if (placeholder) placeholder.style.display = 'none';
+      }
+    }
+    showMsg('orgMsg', `${count} page${count!==1?'s':''} — drag to reorder, rotate or delete`);
+  } catch(e) {
+    showMsg('orgMsg', `Loaded ${count} pages (thumbnail render failed: ${e.message})`);
+  }
+}
+
 function renderOrgList() {
   const el = document.getElementById('orgList');
   if (!el) return;
   const active = orgPages.filter(p => !p.deleted);
-  el.innerHTML = active.map((p, vi) =>
-    `<div class="smpl-card mb-1 flex items-center gap-3" draggable="true" data-vi="${vi}" ondragstart="orgDragStart(event)" ondragover="orgDragOver(event)" ondrop="orgDrop(event)">
-      <span class="opacity-30 text-xs select-none cursor-grab">⠿</span>
-      <span class="text-sm mono flex-1">Page ${p.idx+1}${p.rot?' ('+p.rot+'°)':''}</span>
-      <div class="flex gap-2">
-        <button class="smpl-btn-outline text-xs" onclick="orgRotate(${vi},90)" title="Rotate 90°">↻90°</button>
-        <button class="smpl-btn-outline text-xs" onclick="orgRotate(${vi},180)" title="Rotate 180°">↻180°</button>
-        <button class="smpl-btn-outline text-xs" style="color:#ef4444;border-color:#ef4444" onclick="orgDel(${vi})">✕</button>
+  if (!active.length) { el.innerHTML = '<p class="text-xs opacity-40">All pages deleted.</p>'; return; }
+  el.innerHTML = active.map((p, vi) => {
+    const thumbH = 124; // approx A4 ratio at 96px wide
+    return `<div class="smpl-card mb-2 flex items-center gap-3" draggable="true"
+        data-vi="${vi}" data-pageidx="${p.idx}"
+        ondragstart="orgDragStart(event)" ondragover="orgDragOver(event)" ondrop="orgDrop(event)"
+        style="cursor:grab;user-select:none">
+      <span class="opacity-30 text-xs select-none" style="font-size:18px;line-height:1">⠿</span>
+      <div class="shrink-0 flex items-center justify-center overflow-hidden"
+           style="width:68px;height:${thumbH}px;background:#F3F4F6;border:1px solid #e5e7eb;position:relative" class="dark:bg-[#1a1a1a]">
+        <span class="org-thumb-placeholder text-xs opacity-30" style="${p.thumb?'display:none':''}">p.${p.idx+1}</span>
+        <img class="org-thumb-img" src="${p.thumb||''}" draggable="false"
+             style="width:68px;height:auto;display:${p.thumb?'block':'none'};${p.rot?'transform:rotate('+p.rot+'deg);transform-origin:center center':''}">
       </div>
-    </div>`
-  ).join('') || '<p class="text-xs opacity-40">All pages deleted.</p>';
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-medium mono">Page ${p.idx+1}</div>
+        ${p.rot ? `<div class="text-xs opacity-50 mt-0.5">${p.rot}° rotation</div>` : ''}
+      </div>
+      <div class="flex flex-col gap-1 shrink-0">
+        <button class="smpl-btn-outline text-xs" onclick="orgRotate(${vi},90)" title="Rotate 90°">↻ 90°</button>
+        <button class="smpl-btn-outline text-xs" onclick="orgRotate(${vi},180)" title="Rotate 180°">↻ 180°</button>
+        <button class="smpl-btn-outline text-xs" style="color:#ef4444;border-color:#ef4444" onclick="orgDel(${vi})" title="Delete page">✕ Del</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 function orgDragStart(e) { orgDragSrc = parseInt(e.currentTarget.dataset.vi); e.dataTransfer.effectAllowed='move'; }
 function orgDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect='move'; }
@@ -1008,7 +1076,6 @@ async function orgSave() {
     download(new Blob([bytes],{type:'application/pdf'}), 'organized.pdf');
     showMsg('orgMsg', `Saved — ${kept.length} pages`);
   } catch(e) { showMsg('orgMsg','Error: '+e.message,true); }
-}
 }
 
 // ============================================================
