@@ -15,13 +15,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script type="text/javascript">
-    (function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-    })(window, document, "clarity", "script", "w5d6ux748t");
-</script>
 <script>tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] } } } }</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -165,16 +158,14 @@ pre{white-space:pre-wrap;word-break:break-all}
   <h1 class="text-3xl font-bold mono mb-8">Privacy.</h1>
   <div class="space-y-6 text-sm leading-relaxed opacity-70">
     <p class="text-base font-semibold opacity-100">Your files never leave your device. Ever.</p>
-    <p>All file processing happens in your browser using JavaScript. No file data is transmitted to any server. No accounts. No sign-ups.</p>
-    <h2 class="text-lg font-bold mono opacity-100 mt-8 mb-4">Analytics</h2>
-    <p>This site uses <a href="https://clarity.microsoft.com" target="_blank" rel="noopener noreferrer" class="underline hover:opacity-100">Microsoft Clarity</a> to collect anonymised usage data — mouse movements, clicks, and page interactions. Clarity may set cookies and log your IP address. No file contents are ever captured. You can opt out via your browser's Do Not Track setting or a content blocker.</p>
+    <p>All processing happens in your browser using JavaScript. No data is transmitted to any server. No analytics. No tracking. No cookies (except localStorage for dark mode preference).</p>
     <h2 class="text-lg font-bold mono opacity-100 mt-8 mb-4">What we store</h2>
     <ul class="space-y-2">
       <li>— <code class="mono text-xs bg-[#F3F4F6] dark:bg-[#1a1a1a] px-1">smpl-dark</code>: Your dark mode preference (localStorage)</li>
-      <li>— Microsoft Clarity cookies (session analytics — see <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener noreferrer" class="underline hover:opacity-100">Microsoft's privacy statement</a>)</li>
+      <li>— Nothing else. Seriously.</li>
     </ul>
     <h2 class="text-lg font-bold mono opacity-100 mt-8 mb-4">Third-party resources</h2>
-    <p>We load CSS/JS from Google Fonts CDN, jsDelivr, Cloudflare CDN, and unpkg. We also load Microsoft Clarity for analytics. These services may log your IP address as part of their normal operation. We have no control over their logging practices.</p>
+    <p>We load CSS/JS from Google Fonts CDN, jsDelivr, Cloudflare CDN, and unpkg. These services may log your IP address as part of their normal CDN operation. We have no control over their logging practices.</p>
     <h2 class="text-lg font-bold mono opacity-100 mt-8 mb-4">Browser permissions</h2>
     <p>Some tools request browser permissions: microphone (audio recorder), screen capture (screen recorder). These are only requested when you click the start button — never automatically.</p>
   </div>
@@ -187,7 +178,7 @@ pre{white-space:pre-wrap;word-break:break-all}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs opacity-30">
       <span class="mono">smpl. v1.0.0</span>
       <span>90+ tools. All local. All free.</span>
-      <span>No uploads. All local. Analytics via Clarity.</span>
+      <span>No cookies. No tracking. No uploads.</span>
     </div>
   </div>
 </div>
