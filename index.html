@@ -124,6 +124,7 @@ pre{white-space:pre-wrap;word-break:break-all}
       <button class="tab-btn" data-cat="Dev" onclick="setCat('Dev')">Dev</button>
       <button class="tab-btn" data-cat="Doc" onclick="setCat('Doc')">Doc</button>
       <button class="tab-btn" data-cat="Audio" onclick="setCat('Audio')">Audio</button>
+      <button class="tab-btn" data-cat="Video" onclick="setCat('Video')">Video</button>
       <button class="tab-btn" data-cat="Misc" onclick="setCat('Misc')">Misc</button>
     </div>
   </div>
@@ -3303,6 +3304,312 @@ function fontPairCopyUrl() {
 }
 
 // ============================================================
+// VIDEO TOOLS (ffmpeg.wasm — lazy-loaded on first use)
+// ============================================================
+let _ffmpeg = null;
+let _fetchFile = null;
+let _ffmpegLoadPromise = null;
+let _ffmpegMsgEl = null;
+
+async function loadFFmpeg(msgEl) {
+  _ffmpegMsgEl = msgEl;
+  if (_ffmpeg && _ffmpeg.isLoaded()) return;
+  if (!_ffmpegLoadPromise) {
+    _ffmpegLoadPromise = (async () => {
+      if (!window.FFmpeg) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://unpkg.com/@ffmpeg/ffmpeg@0.11.12/dist/ffmpeg.min.js';
+          s.onload = resolve;
+          s.onerror = () => reject(new Error('Failed to load ffmpeg.js from CDN'));
+          document.head.appendChild(s);
+        });
+      }
+      const { createFFmpeg, fetchFile } = FFmpeg;
+      _fetchFile = fetchFile;
+      _ffmpeg = createFFmpeg({
+        corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+        log: false,
+        progress: ({ ratio }) => {
+          if (_ffmpegMsgEl && ratio > 0) {
+            _ffmpegMsgEl.textContent = 'Processing\u2026 ' + Math.round(ratio * 100) + '%';
+            _ffmpegMsgEl.style.display = 'block';
+          }
+        }
+      });
+      await _ffmpeg.load();
+    })();
+  }
+  if (msgEl) { msgEl.textContent = 'Loading ffmpeg.wasm (one-time \u223030 MB download)\u2026'; msgEl.style.display = 'block'; }
+  await _ffmpegLoadPromise;
+  if (msgEl) { msgEl.textContent = ''; msgEl.style.display = 'none'; }
+}
+
+function ffClean(...files) {
+  if (!_ffmpeg) return;
+  files.forEach(f => { try { _ffmpeg.FS('unlink', f); } catch(e) {} });
+}
+
+// 1. Video Trimmer
+async function videoTrim() {
+  const inp = document.getElementById('vidTrimInput');
+  if (!inp.files[0]) return showMsg('vidTrimMsg', 'Please select a video file.', true);
+  const start = document.getElementById('vidTrimStart').value.trim() || '0';
+  const end = document.getElementById('vidTrimEnd').value.trim();
+  if (!end) return showMsg('vidTrimMsg', 'Please enter an end time.', true);
+  const msg = document.getElementById('vidTrimMsg');
+  try {
+    await loadFFmpeg(msg);
+    _ffmpegMsgEl = msg;
+    const ext = inp.files[0].name.split('.').pop().toLowerCase();
+    const inName = 'in.' + ext;
+    _ffmpeg.FS('writeFile', inName, await _fetchFile(inp.files[0]));
+    await _ffmpeg.run('-ss', start, '-to', end, '-i', inName, '-c', 'copy', 'out.mp4');
+    const data = _ffmpeg.FS('readFile', 'out.mp4');
+    ffClean(inName, 'out.mp4');
+    download(new Blob([data.buffer], {type:'video/mp4'}), 'trimmed.mp4');
+    showMsg('vidTrimMsg', 'Done! Trimmed video downloaded.');
+  } catch(e) { showMsg('vidTrimMsg', 'Error: ' + e.message, true); }
+}
+
+// 2. Video to GIF
+async function videoToGif() {
+  const inp = document.getElementById('vidGifInput');
+  if (!inp.files[0]) return showMsg('vidGifMsg', 'Please select a video file.', true);
+  const start = document.getElementById('vidGifStart').value.trim() || '0';
+  const dur   = document.getElementById('vidGifDur').value  || '5';
+  const fps   = document.getElementById('vidGifFps').value  || '10';
+  const w     = document.getElementById('vidGifW').value    || '480';
+  const msg   = document.getElementById('vidGifMsg');
+  try {
+    await loadFFmpeg(msg);
+    _ffmpegMsgEl = msg;
+    const ext = inp.files[0].name.split('.').pop().toLowerCase();
+    const inName = 'in.' + ext;
+    _ffmpeg.FS('writeFile', inName, await _fetchFile(inp.files[0]));
+    // Two-pass palette method for best GIF quality
+    await _ffmpeg.run('-ss', start, '-t', dur, '-i', inName,
+      '-vf', 'fps=' + fps + ',scale=' + w + ':-1:flags=lanczos,palettegen', 'palette.png');
+    await _ffmpeg.run('-ss', start, '-t', dur, '-i', inName, '-i', 'palette.png',
+      '-filter_complex', 'fps=' + fps + ',scale=' + w + ':-1:flags=lanczos[x];[x][1:v]paletteuse', 'out.gif');
+    const data = _ffmpeg.FS('readFile', 'out.gif');
+    ffClean(inName, 'palette.png', 'out.gif');
+    download(new Blob([data.buffer], {type:'image/gif'}), 'output.gif');
+    showMsg('vidGifMsg', 'Done! GIF downloaded.');
+  } catch(e) { showMsg('vidGifMsg', 'Error: ' + e.message, true); }
+}
+
+// 3. Mute Video
+async function videoMute() {
+  const inp = document.getElementById('vidMuteInput');
+  if (!inp.files[0]) return showMsg('vidMuteMsg', 'Please select a video file.', true);
+  const msg = document.getElementById('vidMuteMsg');
+  try {
+    await loadFFmpeg(msg);
+    _ffmpegMsgEl = msg;
+    const ext = inp.files[0].name.split('.').pop().toLowerCase();
+    const inName = 'in.' + ext;
+    _ffmpeg.FS('writeFile', inName, await _fetchFile(inp.files[0]));
+    await _ffmpeg.run('-i', inName, '-c', 'copy', '-an', 'out.mp4');
+    const data = _ffmpeg.FS('readFile', 'out.mp4');
+    ffClean(inName, 'out.mp4');
+    download(new Blob([data.buffer], {type:'video/mp4'}), 'muted.mp4');
+    showMsg('vidMuteMsg', 'Done! Muted video downloaded.');
+  } catch(e) { showMsg('vidMuteMsg', 'Error: ' + e.message, true); }
+}
+
+// 4. Audio Extractor
+async function videoExtractAudio() {
+  const inp = document.getElementById('vidAudioInput');
+  if (!inp.files[0]) return showMsg('vidAudioMsg', 'Please select a video file.', true);
+  const fmt = document.getElementById('vidAudioFmt').value;
+  const msg = document.getElementById('vidAudioMsg');
+  try {
+    await loadFFmpeg(msg);
+    _ffmpegMsgEl = msg;
+    const ext = inp.files[0].name.split('.').pop().toLowerCase();
+    const inName = 'in.' + ext;
+    _ffmpeg.FS('writeFile', inName, await _fetchFile(inp.files[0]));
+    const outName = 'out.' + fmt;
+    if (fmt === 'mp3') {
+      await _ffmpeg.run('-i', inName, '-vn', '-c:a', 'libmp3lame', '-q:a', '2', outName);
+    } else {
+      await _ffmpeg.run('-i', inName, '-vn', outName);
+    }
+    const data = _ffmpeg.FS('readFile', outName);
+    ffClean(inName, outName);
+    const mime = fmt === 'mp3' ? 'audio/mpeg' : 'audio/wav';
+    download(new Blob([data.buffer], {type:mime}), 'audio.' + fmt);
+    showMsg('vidAudioMsg', 'Done! Audio downloaded.');
+  } catch(e) { showMsg('vidAudioMsg', 'Error: ' + e.message, true); }
+}
+
+// 5. Video Compressor
+async function videoCompress() {
+  const inp = document.getElementById('vidCompInput');
+  if (!inp.files[0]) return showMsg('vidCompMsg', 'Please select a video file.', true);
+  const crf = document.getElementById('vidCompCrf').value || '28';
+  const msg = document.getElementById('vidCompMsg');
+  try {
+    await loadFFmpeg(msg);
+    _ffmpegMsgEl = msg;
+    const ext = inp.files[0].name.split('.').pop().toLowerCase();
+    const inName = 'in.' + ext;
+    _ffmpeg.FS('writeFile', inName, await _fetchFile(inp.files[0]));
+    await _ffmpeg.run('-i', inName, '-c:v', 'libx264', '-crf', crf,
+      '-preset', 'medium', '-c:a', 'aac', '-b:a', '128k', 'out.mp4');
+    const data = _ffmpeg.FS('readFile', 'out.mp4');
+    ffClean(inName, 'out.mp4');
+    download(new Blob([data.buffer], {type:'video/mp4'}), 'compressed.mp4');
+    showMsg('vidCompMsg', 'Done! Compressed video downloaded.');
+  } catch(e) { showMsg('vidCompMsg', 'Error: ' + e.message, true); }
+}
+
+// 6. Video Resizer
+async function videoResize() {
+  const inp = document.getElementById('vidResInput');
+  if (!inp.files[0]) return showMsg('vidResMsg', 'Please select a video file.', true);
+  const preset = document.getElementById('vidResPreset').value;
+  const msg = document.getElementById('vidResMsg');
+  const scaleMap = {
+    '1080p':     'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2',
+    '720p':      'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
+    '480p':      'scale=854:480:force_original_aspect_ratio=decrease,pad=854:480:(ow-iw)/2:(oh-ih)/2',
+    '360p':      'scale=640:360:force_original_aspect_ratio=decrease,pad=640:360:(ow-iw)/2:(oh-ih)/2',
+    'square1080':'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:(ow-iw)/2:(oh-ih)/2',
+    'square720': 'scale=720:720:force_original_aspect_ratio=decrease,pad=720:720:(ow-iw)/2:(oh-ih)/2'
+  };
+  try {
+    await loadFFmpeg(msg);
+    _ffmpegMsgEl = msg;
+    const ext = inp.files[0].name.split('.').pop().toLowerCase();
+    const inName = 'in.' + ext;
+    _ffmpeg.FS('writeFile', inName, await _fetchFile(inp.files[0]));
+    await _ffmpeg.run('-i', inName, '-vf', scaleMap[preset],
+      '-c:v', 'libx264', '-crf', '22', '-c:a', 'aac', '-b:a', '128k', 'out.mp4');
+    const data = _ffmpeg.FS('readFile', 'out.mp4');
+    ffClean(inName, 'out.mp4');
+    download(new Blob([data.buffer], {type:'video/mp4'}), preset + '.mp4');
+    showMsg('vidResMsg', 'Done! Resized video downloaded.');
+  } catch(e) { showMsg('vidResMsg', 'Error: ' + e.message, true); }
+}
+
+// 7. Change Playback Speed
+async function videoSpeed() {
+  const inp = document.getElementById('vidSpdInput');
+  if (!inp.files[0]) return showMsg('vidSpdMsg', 'Please select a video file.', true);
+  const speed = parseFloat(document.getElementById('vidSpdRate').value) || 1.0;
+  const msg = document.getElementById('vidSpdMsg');
+  // Build atempo chain robustly — each atempo filter accepts 0.5–2.0 only
+  function buildAtempo(s) {
+    const parts = [];
+    let rem = s;
+    if (rem < 1) {
+      while (rem < 0.5) { parts.push('atempo=0.5'); rem /= 0.5; }
+    } else {
+      while (rem > 2.0) { parts.push('atempo=2.0'); rem /= 2.0; }
+    }
+    parts.push('atempo=' + rem.toFixed(6));
+    return parts.join(',');
+  }
+  const atempo = buildAtempo(speed);
+  const pts = (1.0 / speed).toFixed(6);
+  try {
+    await loadFFmpeg(msg);
+    _ffmpegMsgEl = msg;
+    const ext = inp.files[0].name.split('.').pop().toLowerCase();
+    const inName = 'in.' + ext;
+    _ffmpeg.FS('writeFile', inName, await _fetchFile(inp.files[0]));
+    try {
+      await _ffmpeg.run('-i', inName,
+        '-filter:v', 'setpts=' + pts + '*PTS',
+        '-filter:a', atempo,
+        '-c:v', 'libx264', '-crf', '22', 'out.mp4');
+    } catch(e2) {
+      // No audio track — apply video filter only
+      ffClean('out.mp4');
+      await _ffmpeg.run('-i', inName,
+        '-filter:v', 'setpts=' + pts + '*PTS',
+        '-an', '-c:v', 'libx264', '-crf', '22', 'out.mp4');
+    }
+    const data = _ffmpeg.FS('readFile', 'out.mp4');
+    ffClean(inName, 'out.mp4');
+    download(new Blob([data.buffer], {type:'video/mp4'}), 'speed_' + speed + 'x.mp4');
+    showMsg('vidSpdMsg', 'Done! Video downloaded.');
+  } catch(e) { showMsg('vidSpdMsg', 'Error: ' + e.message, true); }
+}
+
+// 8. Video Rotator
+async function videoRotate() {
+  const inp = document.getElementById('vidRotInput');
+  if (!inp.files[0]) return showMsg('vidRotMsg', 'Please select a video file.', true);
+  const op = document.getElementById('vidRotOp').value;
+  const msg = document.getElementById('vidRotMsg');
+  const filterMap = {
+    '90':   'transpose=1',
+    '270':  'transpose=2',
+    '180':  'vflip,hflip',
+    'hflip':'hflip',
+    'vflip':'vflip'
+  };
+  try {
+    await loadFFmpeg(msg);
+    _ffmpegMsgEl = msg;
+    const ext = inp.files[0].name.split('.').pop().toLowerCase();
+    const inName = 'in.' + ext;
+    _ffmpeg.FS('writeFile', inName, await _fetchFile(inp.files[0]));
+    await _ffmpeg.run('-i', inName, '-vf', filterMap[op], '-c:a', 'copy', 'out.mp4');
+    const data = _ffmpeg.FS('readFile', 'out.mp4');
+    ffClean(inName, 'out.mp4');
+    download(new Blob([data.buffer], {type:'video/mp4'}), 'rotated.mp4');
+    showMsg('vidRotMsg', 'Done! Rotated video downloaded.');
+  } catch(e) { showMsg('vidRotMsg', 'Error: ' + e.message, true); }
+}
+
+// 9. Extract Thumbnail (pure HTML5 Canvas — no ffmpeg needed)
+async function videoThumb() {
+  const inp = document.getElementById('vidThumbInput');
+  if (!inp.files[0]) return showMsg('vidThumbMsg', 'Please select a video file.', true);
+  const ts = parseFloat(document.getElementById('vidThumbTime').value) || 0;
+  const msg = document.getElementById('vidThumbMsg');
+  try {
+    const video = document.createElement('video');
+    video.muted = true;
+    const objUrl = URL.createObjectURL(inp.files[0]);
+    video.src = objUrl;
+    await new Promise((res, rej) => { video.onloadedmetadata = res; video.onerror = rej; });
+    video.currentTime = Math.max(0, Math.min(ts, video.duration - 0.01));
+    await new Promise((res, rej) => { video.onseeked = res; video.onerror = rej; });
+    const c = mkCanvas(video.videoWidth, video.videoHeight);
+    c.getContext('2d').drawImage(video, 0, 0);
+    URL.revokeObjectURL(objUrl);
+    const blob = await canvasToBlob(c, 'image/jpeg', 0.92);
+    const prev = document.getElementById('vidThumbPreview');
+    if (prev) { prev.src = URL.createObjectURL(blob); prev.style.display = 'block'; }
+    download(blob, 'thumb_' + ts + 's.jpg');
+    showMsg('vidThumbMsg', 'Thumbnail at ' + ts + 's downloaded.');
+  } catch(e) { showMsg('vidThumbMsg', 'Error: ' + e.message, true); }
+}
+
+// 10. WebM to MP4
+async function videoWebmToMp4() {
+  const inp = document.getElementById('vidWebmInput');
+  if (!inp.files[0]) return showMsg('vidWebmMsg', 'Please select a WebM file.', true);
+  const msg = document.getElementById('vidWebmMsg');
+  try {
+    await loadFFmpeg(msg);
+    _ffmpegMsgEl = msg;
+    _ffmpeg.FS('writeFile', 'in.webm', await _fetchFile(inp.files[0]));
+    await _ffmpeg.run('-i', 'in.webm', '-c:v', 'libx264', '-crf', '23',
+      '-preset', 'fast', '-c:a', 'aac', '-b:a', '128k', 'out.mp4');
+    const data = _ffmpeg.FS('readFile', 'out.mp4');
+    ffClean('in.webm', 'out.mp4');
+    download(new Blob([data.buffer], {type:'video/mp4'}), 'converted.mp4');
+    showMsg('vidWebmMsg', 'Done! MP4 downloaded.');
+  } catch(e) { showMsg('vidWebmMsg', 'Error: ' + e.message, true); }
+}
+
+// ============================================================
 // TOOL REGISTRY
 // ============================================================
 const registry = [
@@ -4763,6 +5070,124 @@ ${fileDrop('audioSilInput','audio/*',false,'','mb-4')}
 <input type="range" id="audioSilThresh" min="0.001" max="0.1" step="0.001" value="0.01" class="mb-6 w-full max-w-xs" oninput="document.getElementById('audioSilThreshVal').textContent=parseFloat(this.value).toFixed(3)">
 <button class="smpl-btn" onclick="audioSilenceTrim()">Trim &amp; Download</button>
 <div id="audioSilMsg" class="text-xs mt-3" style="display:none"></div>`},
+// ---- VIDEO ----
+{id:'trim.video',name:'Video Trimmer',cat:'Video',tagline:'Cut start and end times without re-encoding',desc:'Trim a video by setting start and end timestamps. Uses stream copy so no re-encoding happens — it is fast and the video quality is unchanged. Accepts any browser-supported video format. ffmpeg.wasm is loaded on first use (~30 MB, one-time).',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Video File</label>
+${fileDrop('vidTrimInput','video/*',false,'','mb-4')}
+<div class="flex gap-4 mb-6 flex-wrap">
+  <div class="flex-1" style="min-width:160px">
+    <label class="text-xs opacity-50 block mb-1">Start (HH:MM:SS or seconds)</label>
+    <input type="text" id="vidTrimStart" class="smpl-input w-full" placeholder="0" value="0">
+  </div>
+  <div class="flex-1" style="min-width:160px">
+    <label class="text-xs opacity-50 block mb-1">End (HH:MM:SS or seconds)</label>
+    <input type="text" id="vidTrimEnd" class="smpl-input w-full" placeholder="00:00:30">
+  </div>
+</div>
+<button class="smpl-btn" onclick="videoTrim()">Trim &amp; Download</button>
+<div id="vidTrimMsg" class="text-xs mt-3" style="display:none"></div>`},
+{id:'gif.video',name:'Video to GIF',cat:'Video',tagline:'Convert video clips to optimised animated GIFs',desc:'Convert a portion of a video to an optimised GIF using a two-pass palette method for best colour quality. Adjust FPS and width to balance quality and file size. ffmpeg.wasm is loaded on first use (~30 MB).',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Video File</label>
+${fileDrop('vidGifInput','video/*',false,'','mb-4')}
+<div class="grid grid-cols-2 gap-4 mb-6" style="max-width:400px">
+  <div>
+    <label class="text-xs opacity-50 block mb-1">Start (seconds)</label>
+    <input type="text" id="vidGifStart" class="smpl-input w-full" placeholder="0" value="0">
+  </div>
+  <div>
+    <label class="text-xs opacity-50 block mb-1">Duration (seconds)</label>
+    <input type="number" id="vidGifDur" class="smpl-input w-full" placeholder="5" value="5" min="1" max="30">
+  </div>
+  <div>
+    <label class="text-xs opacity-50 block mb-1">FPS</label>
+    <input type="number" id="vidGifFps" class="smpl-input w-full" placeholder="10" value="10" min="1" max="30">
+  </div>
+  <div>
+    <label class="text-xs opacity-50 block mb-1">Width (px)</label>
+    <input type="number" id="vidGifW" class="smpl-input w-full" placeholder="480" value="480" min="100" max="1920">
+  </div>
+</div>
+<button class="smpl-btn" onclick="videoToGif()">Convert to GIF</button>
+<div id="vidGifMsg" class="text-xs mt-3" style="display:none"></div>`},
+{id:'mute.video',name:'Mute Video',cat:'Video',tagline:'Strip the audio track from any video file',desc:'Remove the audio stream from a video using stream copy — no re-encoding of the video track. Instant and lossless for the picture. ffmpeg.wasm is loaded on first use (~30 MB).',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Video File</label>
+${fileDrop('vidMuteInput','video/*',false,'','mb-4')}
+<button class="smpl-btn" onclick="videoMute()">Mute &amp; Download</button>
+<div id="vidMuteMsg" class="text-xs mt-3" style="display:none"></div>`},
+{id:'extract.audio.vid',name:'Audio Extractor',cat:'Video',tagline:'Save the audio from a video as MP3 or WAV',desc:'Extract the audio track from any video file and save it as MP3 or WAV. Useful for grabbing a soundtrack, interview audio, or any other embedded audio. ffmpeg.wasm is loaded on first use (~30 MB).',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Video File</label>
+${fileDrop('vidAudioInput','video/*',false,'','mb-4')}
+<label class="text-xs opacity-50 block mb-1">Output format</label>
+<select id="vidAudioFmt" class="smpl-select mb-6">
+  <option value="mp3">MP3</option>
+  <option value="wav">WAV</option>
+</select>
+<button class="smpl-btn" onclick="videoExtractAudio()">Extract &amp; Download</button>
+<div id="vidAudioMsg" class="text-xs mt-3" style="display:none"></div>`},
+{id:'compress.video',name:'Video Compressor',cat:'Video',tagline:'Reduce file size by adjusting the CRF value',desc:'Re-encode a video with H.264 at a chosen Constant Rate Factor. Lower CRF means higher quality and larger file; higher CRF means smaller file with more compression. Range: 18 (near-lossless) to 51 (heavily compressed). ffmpeg.wasm is loaded on first use (~30 MB).',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Video File</label>
+${fileDrop('vidCompInput','video/*',false,'','mb-4')}
+<label class="text-xs opacity-50 block mb-1">CRF: <span id="vidCompCrfVal">28</span> &nbsp;(18 = high quality · 51 = smallest file)</label>
+<input type="range" id="vidCompCrf" min="18" max="51" step="1" value="28" class="mb-6 w-full max-w-xs" oninput="document.getElementById('vidCompCrfVal').textContent=this.value">
+<button class="smpl-btn" onclick="videoCompress()">Compress &amp; Download</button>
+<div id="vidCompMsg" class="text-xs mt-3" style="display:none"></div>`},
+{id:'resize.video',name:'Video Resizer',cat:'Video',tagline:'Scale video to a specific resolution preset',desc:'Resize a video to a standard resolution, adding black bars (letterbox / pillarbox) if the aspect ratio differs. Output is H.264 MP4. ffmpeg.wasm is loaded on first use (~30 MB).',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Video File</label>
+${fileDrop('vidResInput','video/*',false,'','mb-4')}
+<label class="text-xs opacity-50 block mb-1">Target resolution</label>
+<select id="vidResPreset" class="smpl-select mb-6">
+  <option value="1080p">1080p (1920 × 1080)</option>
+  <option value="720p" selected>720p (1280 × 720)</option>
+  <option value="480p">480p (854 × 480)</option>
+  <option value="360p">360p (640 × 360)</option>
+  <option value="square1080">Square 1080 (1080 × 1080)</option>
+  <option value="square720">Square 720 (720 × 720)</option>
+</select>
+<button class="smpl-btn" onclick="videoResize()">Resize &amp; Download</button>
+<div id="vidResMsg" class="text-xs mt-3" style="display:none"></div>`},
+{id:'speed.video',name:'Change Speed',cat:'Video',tagline:'Create slow-motion or timelapse effects',desc:'Change the playback speed of a video. Speeds below 1× create slow motion; above 1× create timelapse. Both video and audio pitch are adjusted. Supports 0.25× to 4×. ffmpeg.wasm is loaded on first use (~30 MB).',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Video File</label>
+${fileDrop('vidSpdInput','video/*',false,'','mb-4')}
+<label class="text-xs opacity-50 block mb-1">Speed: <span id="vidSpdRateVal">1.00</span>×</label>
+<input type="range" id="vidSpdRate" min="0.25" max="4" step="0.25" value="1" class="mb-6 w-full max-w-xs" oninput="document.getElementById('vidSpdRateVal').textContent=parseFloat(this.value).toFixed(2)">
+<button class="smpl-btn" onclick="videoSpeed()">Apply &amp; Download</button>
+<div id="vidSpdMsg" class="text-xs mt-3" style="display:none"></div>`},
+{id:'rotate.video',name:'Video Rotator',cat:'Video',tagline:'Fix orientation or flip a video',desc:'Rotate or mirror a video to correct mobile upload orientation or create creative effects. The operation is applied via a video filter and re-encodes the video stream. Audio is copied unchanged. ffmpeg.wasm is loaded on first use (~30 MB).',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Video File</label>
+${fileDrop('vidRotInput','video/*',false,'','mb-4')}
+<label class="text-xs opacity-50 block mb-1">Operation</label>
+<select id="vidRotOp" class="smpl-select mb-6">
+  <option value="90">Rotate 90° clockwise</option>
+  <option value="270">Rotate 90° counter-clockwise</option>
+  <option value="180">Rotate 180°</option>
+  <option value="hflip">Flip horizontal (mirror)</option>
+  <option value="vflip">Flip vertical (upside down)</option>
+</select>
+<button class="smpl-btn" onclick="videoRotate()">Rotate &amp; Download</button>
+<div id="vidRotMsg" class="text-xs mt-3" style="display:none"></div>`},
+{id:'thumb.video',name:'Extract Thumbnail',cat:'Video',tagline:'Grab a high-quality JPG frame from any timestamp',desc:'Seek to any point in a video and export that frame as a JPEG image. Uses the browser\'s native HTML5 video and Canvas APIs — no library required, works instantly.',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Video File</label>
+${fileDrop('vidThumbInput','video/*',false,'','mb-4')}
+<label class="text-xs opacity-50 block mb-1">Timestamp (seconds)</label>
+<input type="number" id="vidThumbTime" class="smpl-input mb-6 max-w-xs" placeholder="0" value="0" min="0" step="0.1">
+<button class="smpl-btn" onclick="videoThumb()">Extract &amp; Download</button>
+<img id="vidThumbPreview" style="display:none;max-width:100%;margin-top:16px;border-radius:4px" alt="thumbnail preview">
+<div id="vidThumbMsg" class="text-xs mt-3" style="display:none"></div>`},
+{id:'webm.video',name:'WebM to MP4',cat:'Video',tagline:'Convert browser-recorded WebM files to MP4',desc:'Convert WebM video files (e.g. from the Screen Recorder tool) to the universally compatible H.264 MP4 format. ffmpeg.wasm is loaded on first use (~30 MB).',
+render:()=>`
+<label class="text-xs uppercase tracking-widest opacity-50 block mb-2">WebM File</label>
+${fileDrop('vidWebmInput','video/webm,video/*',false,'','mb-4')}
+<button class="smpl-btn" onclick="videoWebmToMp4()">Convert to MP4</button>
+<div id="vidWebmMsg" class="text-xs mt-3" style="display:none"></div>`},
 ]; // END REGISTRY
 
 // ============================================================
