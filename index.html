@@ -6,6 +6,9 @@
 <title>smpl. — 90+ Browser Tools</title>
 <meta name="description" content="90 free browser tools for PDF, image, text, and developer tasks. No uploads, everything runs locally in your browser.">
 <meta name="msvalidate.01" content="F159770B2C572472A22CFA15E36427A0" />
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon.svg">
 <meta name="google-site-verification" content="ZyU59ok6Gf2UsmF-hXjUO0FjlYvJoNE1dzZ9bNt9PYE" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -98,11 +101,15 @@ pre{white-space:pre-wrap;word-break:break-all}
 <!-- HEADER -->
 <header class="sticky top-0 z-50 border-b border-[#F3F4F6] dark:border-[#262626] bg-white dark:bg-[#0A0A0A] transition-colors">
 <div class="max-w-screen-xl mx-auto px-6 py-4 flex items-center justify-between">
-  <button onclick="showSection('home')" class="text-xl font-bold mono tracking-tight hover:opacity-70 transition-opacity">smpl.</button>
+  <div class="flex items-center gap-3">
+    <div id="logoPlaceholder" class="w-8 h-8 rounded flex items-center justify-center text-[7px] font-mono font-bold opacity-40 border border-dashed border-current select-none flex-shrink-0" title="Logo placeholder">LOGO</div>
+    <button onclick="showSection('home')" class="text-xl font-bold mono tracking-tight hover:opacity-70 transition-opacity">smpl.</button>
+  </div>
   <nav class="flex items-center gap-6">
     <button onclick="showSection('home')" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">Tools</button>
     <button onclick="showSection('about')" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">Method</button>
     <button onclick="showSection('privacy')" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">Privacy</button>
+    <button id="installBtn" onclick="triggerInstall()" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity" aria-label="Install app" style="display:none">⊕ Install</button>
     <button onclick="toggleDark()" id="darkBtn" class="text-xl font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity" aria-label="Toggle dark mode" aria-pressed="false">◐</button>
   </nav>
 </div>
@@ -213,7 +220,20 @@ function toggleDark() {
 function showSection(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   const el = document.getElementById(id);
-  if (el) { el.classList.add('active'); window.scrollTo(0,0); }
+  if (!el) return;
+  el.classList.add('active');
+  if (id === 'home') {
+    // Restore saved home scroll position
+    const savedY = sessionStorage.getItem('smpl-home-scroll');
+    if (savedY !== null) {
+      requestAnimationFrame(() => window.scrollTo(0, parseInt(savedY, 10)));
+    } else {
+      window.scrollTo(0, 0);
+    }
+    sessionStorage.removeItem('smpl-tool');
+  } else {
+    window.scrollTo(0, 0);
+  }
 }
 function showMsg(id, msg, isError) {
   const el = document.getElementById(id);
@@ -5238,6 +5258,13 @@ function setCat(cat) {
 // TOOL OPENING
 // ============================================================
 function openTool(id) {
+  // Save home scroll position before leaving
+  const homeSection = document.getElementById('home');
+  if (homeSection && homeSection.classList.contains('active')) {
+    sessionStorage.setItem('smpl-home-scroll', String(window.scrollY));
+  }
+  // Persist current tool for refresh recovery
+  sessionStorage.setItem('smpl-tool', id);
   const tool = registry.find(t => t.id === id);
   if (!tool) return;
   document.getElementById('workspaceContent').innerHTML = `
@@ -5279,9 +5306,36 @@ function openTool(id) {
 }
 
 // ============================================================
+// PWA — install prompt
+// ============================================================
+let _pwaInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _pwaInstallPrompt = e;
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.style.display = '';
+});
+window.addEventListener('appinstalled', () => {
+  _pwaInstallPrompt = null;
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.style.display = 'none';
+});
+function triggerInstall() {
+  if (!_pwaInstallPrompt) return;
+  _pwaInstallPrompt.prompt();
+  _pwaInstallPrompt.userChoice.then(() => { _pwaInstallPrompt = null; });
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.style.display = 'none';
+}
+
+// ============================================================
 // INITIALIZATION
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
   // Restore dark mode
   const dark = localStorage.getItem('smpl-dark');
   if (dark === '1' || (dark === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -5292,6 +5346,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // Render all tools
   renderGrid(registry.filter(t => !t.hidden));
+  // Restore last open tool if page was refreshed while on a tool
+  const savedTool = sessionStorage.getItem('smpl-tool');
+  if (savedTool) {
+    openTool(savedTool);
+  }
 });
 </script>
 </body>
