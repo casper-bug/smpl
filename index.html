@@ -1089,6 +1089,8 @@ function imgResizePreview() {
     document.getElementById('resizeW').value = img.naturalWidth;
     document.getElementById('resizeH').value = img.naturalHeight;
     document.getElementById('resizeInfo').textContent = `Original: ${img.naturalWidth} x ${img.naturalHeight}`;
+    const wrap = document.getElementById('resizePreviewWrap');
+    if (wrap) wrap.style.display = 'block';
     resizeUpdateEst();
   }).catch(e => showMsg('resizeMsg', e, true));
 }
@@ -1130,6 +1132,15 @@ function resizeUpdateEst() {
       const blob = await canvasToBlob(c, mimeType, quality);
       const sizeKb = (blob.size / 1024).toFixed(1);
       if (estEl) estEl.textContent = `Estimated output: ${w}×${h} — ~${sizeKb} KB`;
+      // Live preview canvas
+      const prevCanvas = document.getElementById('resizePreviewCanvas');
+      if (prevCanvas) {
+        const MAX = 480;
+        const scale = Math.min(1, MAX / w, MAX / h);
+        prevCanvas.width = Math.round(w * scale);
+        prevCanvas.height = Math.round(h * scale);
+        prevCanvas.getContext('2d').drawImage(c, 0, 0, prevCanvas.width, prevCanvas.height);
+      }
     } catch(e) { if (estEl) estEl.textContent = ''; }
   }, 400);
 }
@@ -1147,9 +1158,11 @@ async function imgResize() {
     const useKb = document.getElementById('resizeUseKb') && document.getElementById('resizeUseKb').checked;
     let blob;
     if (useKb && fmt !== 'png') {
-      const targetKb = parseFloat(document.getElementById('resizeSizeKb').value);
-      if (!targetKb || targetKb <= 0) throw 'Enter a valid target size in KB';
-      const targetBytes = targetKb * 1024;
+      const targetVal = parseFloat(document.getElementById('resizeSizeKb').value);
+      const unitEl = document.getElementById('resizeSizeUnit');
+      const unit = unitEl ? unitEl.value : 'KB';
+      if (!targetVal || targetVal <= 0) throw `Enter a valid target size in ${unit}`;
+      const targetBytes = unit === 'MB' ? targetVal * 1024 * 1024 : targetVal * 1024;
       let lo = 0.01, hi = 1.0, bestBlob = null;
       for (let i = 0; i < 12; i++) {
         const mid = (lo + hi) / 2;
@@ -3543,11 +3556,15 @@ ${fileDrop('bookInput','.pdf',false,'','mb-4')}
 },
 
 // ---- Image ----
-{id:'resize.img',name:'Resize Image',cat:'Image',tagline:'Resize any image to exact pixel dimensions',desc:'Resize images using the Canvas API. Choose output format, quality, or target a specific file size in KB.',
+{id:'resize.img',name:'Resize Image',cat:'Image',tagline:'Resize any image to exact pixel dimensions',desc:'Resize images using the Canvas API. Choose output format, quality, or target a specific file size in KB or MB.',
 render:()=>`
 <label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Image File</label>
 ${fileDrop('resizeInput','image/*',false,'imgResizePreview()','mb-4')}
 <div id="resizeInfo" class="text-xs opacity-50 mb-4"></div>
+<div id="resizePreviewWrap" style="display:none" class="mb-4">
+  <canvas id="resizePreviewCanvas" style="display:block;max-width:100%;border:1px solid #F3F4F6;" class="dark:border-[#262626]"></canvas>
+  <p class="text-xs opacity-40 mt-1">Live preview</p>
+</div>
 <div class="flex gap-4 mb-4 flex-wrap">
   <div class="flex-1 min-w-32">
     <label class="text-xs opacity-50 block mb-1">Width (px)</label>
@@ -3579,8 +3596,14 @@ ${fileDrop('resizeInput','image/*',false,'imgResizePreview()','mb-4')}
   <input type="checkbox" id="resizeUseKb" onchange="resizeToggleKb()"> Target file size
 </label>
 <div id="resizeSizeKbGroup" style="display:none" class="mb-4">
-  <label class="text-xs opacity-50 block mb-1">Target size (KB)</label>
-  <input type="number" id="resizeSizeKb" placeholder="200" class="smpl-input text-sm" style="max-width:160px">
+  <label class="text-xs opacity-50 block mb-1">Target size</label>
+  <div class="flex gap-2 items-center">
+    <input type="number" id="resizeSizeKb" placeholder="200" class="smpl-input text-sm" style="max-width:130px">
+    <select id="resizeSizeUnit" class="smpl-select text-sm" style="max-width:80px">
+      <option value="KB">KB</option>
+      <option value="MB">MB</option>
+    </select>
+  </div>
   <p class="text-xs opacity-40 mt-2">Quality is adjusted automatically. Only for JPEG / WebP.</p>
 </div>
 <div id="resizeSizeEst" class="text-xs opacity-60 mb-4"></div>
