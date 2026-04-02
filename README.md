@@ -1,6 +1,3 @@
-Since your project [smpl.codes](https://smpl.codes/) is focused on a "privacy-first, local-only" philosophy, the README should emphasize that **no data ever leaves the user's machine.** Here is a professional, high-energy README.md template tailored for your repository.
-
----
 
 # smpl. 
 ### 90+ Browser Tools. Local-First. No Uploads.
