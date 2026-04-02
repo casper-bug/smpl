@@ -6,6 +6,9 @@
 <title>smpl. — 90+ Browser Tools</title>
 <meta name="description" content="90 free browser tools for PDF, image, text, and developer tasks. No uploads, everything runs locally in your browser.">
 <meta name="msvalidate.01" content="F159770B2C572472A22CFA15E36427A0" />
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon.svg">
 <meta name="google-site-verification" content="ZyU59ok6Gf2UsmF-hXjUO0FjlYvJoNE1dzZ9bNt9PYE" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,6 +18,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.js"></script>
 <script>tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] } } } }</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -98,11 +102,17 @@ pre{white-space:pre-wrap;word-break:break-all}
 <!-- HEADER -->
 <header class="sticky top-0 z-50 border-b border-[#F3F4F6] dark:border-[#262626] bg-white dark:bg-[#0A0A0A] transition-colors">
 <div class="max-w-screen-xl mx-auto px-6 py-4 flex items-center justify-between">
-  <button onclick="showSection('home')" class="text-xl font-bold mono tracking-tight hover:opacity-70 transition-opacity">smpl.</button>
+  <div class="flex items-center gap-3">
+    <button onclick="showSection('home')" class="hover:opacity-70 transition-opacity flex-shrink-0" aria-label="Home">
+      <img src="/icon.svg" alt="smpl. logo" class="w-8 h-8 rounded" style="display:block">
+    </button>
+    <button onclick="showSection('home')" class="text-xl font-bold mono tracking-tight hover:opacity-70 transition-opacity">smpl.</button>
+  </div>
   <nav class="flex items-center gap-6">
     <button onclick="showSection('home')" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">Tools</button>
     <button onclick="showSection('about')" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">Method</button>
     <button onclick="showSection('privacy')" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">Privacy</button>
+    <button id="installBtn" onclick="triggerInstall()" class="text-xs font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity" aria-label="Install app" style="display:none">⊕ Install</button>
     <button onclick="toggleDark()" id="darkBtn" class="text-xl font-semibold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity" aria-label="Toggle dark mode" aria-pressed="false">◐</button>
   </nav>
 </div>
@@ -213,7 +223,20 @@ function toggleDark() {
 function showSection(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   const el = document.getElementById(id);
-  if (el) { el.classList.add('active'); window.scrollTo(0,0); }
+  if (!el) return;
+  el.classList.add('active');
+  if (id === 'home') {
+    // Restore saved home scroll position
+    const savedY = sessionStorage.getItem('smpl-home-scroll');
+    if (savedY !== null) {
+      requestAnimationFrame(() => window.scrollTo(0, parseInt(savedY, 10)));
+    } else {
+      window.scrollTo(0, 0);
+    }
+    sessionStorage.removeItem('smpl-tool');
+  } else {
+    window.scrollTo(0, 0);
+  }
 }
 function showMsg(id, msg, isError) {
   const el = document.getElementById(id);
@@ -1212,6 +1235,29 @@ let cropImg = null, cropCanvas = null, cropCtx = null;
 let cropRect = {x:0,y:0,w:0,h:0};
 let cropScale = 1;
 let cropDrag = null;
+let cropRatio = 0; // 0 = free, >0 = locked w/h ratio
+const CROP_RATIO_EPS = 0.0001; // tolerance for floating-point ratio comparison
+
+function setCropRatio(ratio) {
+  cropRatio = ratio;
+  // Update active state on ratio buttons
+  document.querySelectorAll('.crop-ratio-btn').forEach(b => {
+    const v = parseFloat(b.dataset.ratio);
+    const active = (ratio === 0 && b.dataset.ratio === '0') || (ratio !== 0 && Math.abs(v - ratio) < CROP_RATIO_EPS);
+    b.classList.toggle('smpl-btn', active);
+    b.classList.toggle('smpl-btn-outline', !active);
+  });
+  if (ratio === 0 || !cropImg) return;
+  // Apply ratio to current rect (keep width, adjust height)
+  const iw = cropImg.naturalWidth, ih = cropImg.naturalHeight;
+  let w = cropRect.w || iw;
+  let h = Math.round(w / ratio);
+  if (h > ih) { h = ih; w = Math.round(h * ratio); }
+  cropRect = { x: Math.max(0, cropRect.x), y: Math.max(0, cropRect.y), w: Math.min(w, iw), h: Math.min(h, ih) };
+  document.getElementById('cropW').value = Math.round(cropRect.w);
+  document.getElementById('cropH').value = Math.round(cropRect.h);
+  cropRender();
+}
 
 function imgCropPreview() {
   loadImgFile('cropImgInput').then(img => {
@@ -1320,22 +1366,46 @@ function cropPointerMove(e) {
   const iw = cropImg.naturalWidth, ih = cropImg.naturalHeight;
   const o = cropDrag.origRect;
   let {x:rx, y:ry, w:rw, h:rh} = o;
+
   if (cropDrag.handle === 'new') {
-    const nx = Math.min(x, cropDrag.startX) / cropScale;
-    const ny = Math.min(y, cropDrag.startY) / cropScale;
-    cropRect = {
-      x: Math.max(0, nx), y: Math.max(0, ny),
-      w: Math.min(Math.abs(x - cropDrag.startX) / cropScale, iw - Math.max(0,nx)),
-      h: Math.min(Math.abs(y - cropDrag.startY) / cropScale, ih - Math.max(0,ny))
-    };
+    const nx = Math.max(0, Math.min(x, cropDrag.startX) / cropScale);
+    const ny = Math.max(0, Math.min(y, cropDrag.startY) / cropScale);
+    let nw = Math.min(Math.abs(x - cropDrag.startX) / cropScale, iw - nx);
+    let nh = Math.min(Math.abs(y - cropDrag.startY) / cropScale, ih - ny);
+    if (cropRatio > 0) {
+      // Constrain to the axis that would produce the smaller box, preserving ratio
+      if (nw / cropRatio < nh) { nh = nw / cropRatio; } else { nw = nh * cropRatio; }
+      nw = Math.min(nw, iw - nx); nh = Math.min(nh, ih - ny);
+    }
+    cropRect = { x: nx, y: ny, w: nw, h: nh };
   } else if (cropDrag.handle === 'move') {
     cropRect = {x: Math.max(0, Math.min(rx+dx, iw-rw)), y: Math.max(0, Math.min(ry+dy, ih-rh)), w:rw, h:rh};
   } else {
     const h = cropDrag.handle;
-    if (h.includes('e')) rw = Math.max(1, o.w + dx);
-    if (h.includes('s')) rh = Math.max(1, o.h + dy);
-    if (h.includes('w')) { rx = o.x + dx; rw = Math.max(1, o.w - dx); }
-    if (h.includes('n')) { ry = o.y + dy; rh = Math.max(1, o.h - dy); }
+    if (cropRatio > 0) {
+      // Determine primary axis from handle direction, derive the other
+      if (h === 'e' || h === 'w') {
+        if (h === 'e') rw = Math.max(1, o.w + dx);
+        if (h === 'w') { rx = o.x + dx; rw = Math.max(1, o.w - dx); }
+        rh = rw / cropRatio;
+      } else if (h === 's' || h === 'n') {
+        if (h === 's') rh = Math.max(1, o.h + dy);
+        if (h === 'n') { ry = o.y + dy; rh = Math.max(1, o.h - dy); }
+        rw = rh * cropRatio;
+      } else {
+        // Corner handles — use width as primary axis
+        if (h.includes('e')) rw = Math.max(1, o.w + dx);
+        if (h.includes('w')) { rx = o.x + dx; rw = Math.max(1, o.w - dx); }
+        rh = rw / cropRatio;
+        // Adjust anchor for n-handles
+        if (h.includes('n')) ry = o.y + o.h - rh;
+      }
+    } else {
+      if (h.includes('e')) rw = Math.max(1, o.w + dx);
+      if (h.includes('s')) rh = Math.max(1, o.h + dy);
+      if (h.includes('w')) { rx = o.x + dx; rw = Math.max(1, o.w - dx); }
+      if (h.includes('n')) { ry = o.y + dy; rh = Math.max(1, o.h - dy); }
+    }
     cropRect = {x:Math.max(0,rx), y:Math.max(0,ry), w:Math.min(rw,iw-Math.max(0,rx)), h:Math.min(rh,ih-Math.max(0,ry))};
   }
   document.getElementById('cropX').value = Math.round(cropRect.x);
@@ -1350,22 +1420,16 @@ function cropPointerUp() { cropDrag = null; }
 function cropSyncFromInputs() {
   if (!cropImg) return;
   const iw = cropImg.naturalWidth, ih = cropImg.naturalHeight;
+  let w = Math.min(Math.max(1, parseInt(document.getElementById('cropW').value)||iw), iw);
+  let h = Math.min(Math.max(1, parseInt(document.getElementById('cropH').value)||ih), ih);
+  if (cropRatio > 0) h = Math.min(Math.round(w / cropRatio), ih);
   cropRect = {
     x: Math.max(0, parseInt(document.getElementById('cropX').value)||0),
     y: Math.max(0, parseInt(document.getElementById('cropY').value)||0),
-    w: Math.min(Math.max(1, parseInt(document.getElementById('cropW').value)||iw), iw),
-    h: Math.min(Math.max(1, parseInt(document.getElementById('cropH').value)||ih), ih)
+    w, h
   };
+  document.getElementById('cropH').value = Math.round(cropRect.h);
   cropRender();
-}
-
-function setCropPreset(ratio) {
-  if (!cropImg) return;
-  const iw = cropImg.naturalWidth, ih = cropImg.naturalHeight;
-  const w = parseInt(document.getElementById('cropW').value) || iw;
-  const h = Math.round(w / ratio);
-  document.getElementById('cropH').value = Math.min(h, ih);
-  cropSyncFromInputs();
 }
 
 async function imgCrop() {
@@ -1396,6 +1460,38 @@ async function imgStrip() {
     showMsg('stripMsg', 'EXIF data removed (canvas re-export strips all metadata)');
   } catch(e) { showMsg('stripMsg', e, true); }
 }
+
+async function imgToSvg() {
+  const btn = document.getElementById('imgToSvgBtn');
+  const msg = 'imgToSvgMsg';
+  try {
+    if (btn) btn.disabled = true;
+    showMsg(msg, 'Tracing image…');
+    const img = await loadImgFile('imgToSvgInput');
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const c = mkCanvas(iw, ih);
+    c.getContext('2d').drawImage(img, 0, 0);
+    const imageData = c.getContext('2d').getImageData(0, 0, iw, ih);
+    const colors = Math.max(2, Math.min(64, parseInt(document.getElementById('imgToSvgColors').value) || 16));
+    const blur = parseInt(document.getElementById('imgToSvgBlur').value) || 0;
+    const opts = {
+      numberofcolors: colors,
+      colorsampling: 2,
+      blurradius: blur,
+      blurdelta: 20,
+      pathomit: 8,
+      roundcoords: 1,
+      lcpr: 0,
+      qcpr: 0,
+      strokewidth: 0
+    };
+    const svgStr = ImageTracer.imagedataToSVG(imageData, opts);
+    download(new Blob([svgStr], {type: 'image/svg+xml'}), 'traced.svg');
+    showMsg(msg, `SVG exported — ${iw}×${ih}px, ${colors} colours`);
+  } catch(e) { showMsg(msg, String(e), true); }
+  finally { if (btn) btn.disabled = false; }
+}
+
 
 // ── Instagram Grid Creator ────────────────────────────────
 const gridState = {
@@ -3928,11 +4024,12 @@ ${fileDrop('cropImgInput','image/*',false,'imgCropPreview()','mb-4')}
   <p class="text-xs opacity-40 mt-2">Drag to draw crop area · Drag handles to resize · Drag inside to move</p>
 </div>
 <div class="flex flex-wrap gap-2 mb-3">
-  <button class="smpl-btn-outline text-xs" onclick="setCropPreset(1)">1:1</button>
-  <button class="smpl-btn-outline text-xs" onclick="setCropPreset(16/9)">16:9</button>
-  <button class="smpl-btn-outline text-xs" onclick="setCropPreset(4/3)">4:3</button>
-  <button class="smpl-btn-outline text-xs" onclick="setCropPreset(9/16)">9:16</button>
-  <button class="smpl-btn-outline text-xs" onclick="setCropPreset(3/2)">3:2</button>
+  <button class="crop-ratio-btn smpl-btn text-xs" data-ratio="0" onclick="setCropRatio(0)">Free</button>
+  <button class="crop-ratio-btn smpl-btn-outline text-xs" data-ratio="1" onclick="setCropRatio(1)">1:1</button>
+  <button class="crop-ratio-btn smpl-btn-outline text-xs" data-ratio="1.777778" onclick="setCropRatio(16/9)">16:9</button>
+  <button class="crop-ratio-btn smpl-btn-outline text-xs" data-ratio="1.333333" onclick="setCropRatio(4/3)">4:3</button>
+  <button class="crop-ratio-btn smpl-btn-outline text-xs" data-ratio="0.5625" onclick="setCropRatio(9/16)">9:16</button>
+  <button class="crop-ratio-btn smpl-btn-outline text-xs" data-ratio="1.5" onclick="setCropRatio(3/2)">3:2</button>
 </div>
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div><label class="text-xs opacity-50 block mb-1">X (px)</label><input type="number" id="cropX" value="0" min="0" class="smpl-input text-sm" oninput="cropSyncFromInputs()"></div>
@@ -4122,6 +4219,22 @@ render:()=>`
 </div>
 <button class="smpl-btn" onclick="imgSvg()">Export PNG</button>
 <div id="svgMsg" class="text-xs mt-3" style="display:none"></div>`},
+
+{id:'img.svg',name:'Image → SVG',cat:'Image',tagline:'Trace a PNG or JPG into real scalable SVG paths',desc:'Vectorizes your raster image using colour quantization and contour tracing (imagetracerjs). The output contains real SVG path elements — no embedded pixels. Increase colour count for more detail; reduce it for a cleaner, smaller file.',
+render:()=>`
+${fileDrop('imgToSvgInput','image/*',false,'','mb-4')}
+<div class="flex flex-wrap gap-6 mb-6">
+  <div>
+    <label class="text-xs opacity-50 block mb-1">Colours <span class="opacity-60">(2–64)</span></label>
+    <input type="number" id="imgToSvgColors" value="16" min="2" max="64" class="smpl-input text-sm" style="width:80px">
+  </div>
+  <div>
+    <label class="text-xs opacity-50 block mb-1">Pre-blur <span class="opacity-60">(0–5)</span></label>
+    <input type="number" id="imgToSvgBlur" value="0" min="0" max="5" class="smpl-input text-sm" style="width:80px">
+  </div>
+</div>
+<button id="imgToSvgBtn" class="smpl-btn" onclick="imgToSvg()">Trace &amp; Download SVG</button>
+<div id="imgToSvgMsg" class="text-xs mt-3" style="display:none"></div>`},
 
 {id:'flip.img',name:'Flip Image',cat:'Image',tagline:'Flip an image horizontally or vertically',desc:'Mirror your image along the horizontal or vertical axis using Canvas transform operations.',
 render:()=>`
@@ -5238,6 +5351,13 @@ function setCat(cat) {
 // TOOL OPENING
 // ============================================================
 function openTool(id) {
+  // Save home scroll position before leaving
+  const homeSection = document.getElementById('home');
+  if (homeSection && homeSection.classList.contains('active')) {
+    sessionStorage.setItem('smpl-home-scroll', String(window.scrollY));
+  }
+  // Persist current tool for refresh recovery
+  sessionStorage.setItem('smpl-tool', id);
   const tool = registry.find(t => t.id === id);
   if (!tool) return;
   document.getElementById('workspaceContent').innerHTML = `
@@ -5273,15 +5393,42 @@ function openTool(id) {
   if (tool.id === 'unit.conv') setTimeout(unitCatChange, 50);
   if (tool.id === 'font.pair') setTimeout(fontPairRenderCards, 50);
   // Reset crop state when opening crop tool
-  if (tool.id === 'crop.img') { cropImg = null; cropCanvas = null; cropCtx = null; cropRect = {x:0,y:0,w:0,h:0}; cropDrag = null; }
+  if (tool.id === 'crop.img') { cropImg = null; cropCanvas = null; cropCtx = null; cropRect = {x:0,y:0,w:0,h:0}; cropDrag = null; cropRatio = 0; }
   // Reset audio trim state when opening trim tool
   if (tool.id === 'trim.audio') { audioTrimDuration = 0; }
+}
+
+// ============================================================
+// PWA — install prompt
+// ============================================================
+let _pwaInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _pwaInstallPrompt = e;
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.style.display = '';
+});
+window.addEventListener('appinstalled', () => {
+  _pwaInstallPrompt = null;
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.style.display = 'none';
+});
+function triggerInstall() {
+  if (!_pwaInstallPrompt) return;
+  _pwaInstallPrompt.prompt();
+  _pwaInstallPrompt.userChoice.then(() => { _pwaInstallPrompt = null; });
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.style.display = 'none';
 }
 
 // ============================================================
 // INITIALIZATION
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(err => console.warn('SW registration failed:', err));
+  }
   // Restore dark mode
   const dark = localStorage.getItem('smpl-dark');
   if (dark === '1' || (dark === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -5292,6 +5439,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // Render all tools
   renderGrid(registry.filter(t => !t.hidden));
+  // Restore last open tool if page was refreshed while on a tool
+  const savedTool = sessionStorage.getItem('smpl-tool');
+  if (savedTool) {
+    openTool(savedTool);
+  }
 });
 </script>
 </body>
