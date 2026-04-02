@@ -145,7 +145,7 @@ pre{white-space:pre-wrap;word-break:break-all}
 <section id="about" class="section py-16 max-w-2xl">
   <h1 class="text-3xl font-bold mono mb-8">Method.</h1>
   <div class="space-y-6 text-sm leading-relaxed opacity-70">
-    <p>smpl. is a collection of 70+ browser-based tools for working with PDFs, images, text, and code. Every tool runs entirely client-side — no servers, no uploads, no accounts.</p>
+    <p>smpl. is a collection of 90+ browser-based tools for working with PDFs, images, text, and code. Every tool runs entirely client-side — no servers, no uploads, no accounts.</p>
     <p>The design philosophy is radical simplicity. Each tool does one thing. The interface gets out of the way.</p>
     <p>Built with vanilla JavaScript, Tailwind CSS, pdf-lib for PDF operations, and the Canvas API for image manipulation.</p>
     <p>Performance is intentional. Files are processed using Web APIs: File API, Canvas 2D, WebCrypto, MediaRecorder. Nothing is sent anywhere.</p>
@@ -165,14 +165,16 @@ pre{white-space:pre-wrap;word-break:break-all}
   <h1 class="text-3xl font-bold mono mb-8">Privacy.</h1>
   <div class="space-y-6 text-sm leading-relaxed opacity-70">
     <p class="text-base font-semibold opacity-100">Your files never leave your device. Ever.</p>
-    <p>All processing happens in your browser using JavaScript. No data is transmitted to any server. No analytics. No tracking. No cookies (except localStorage for dark mode preference).</p>
+    <p>All file processing happens in your browser using JavaScript. No file data is transmitted to any server. No accounts. No sign-ups.</p>
+    <h2 class="text-lg font-bold mono opacity-100 mt-8 mb-4">Analytics</h2>
+    <p>This site uses <a href="https://clarity.microsoft.com" target="_blank" rel="noopener noreferrer" class="underline hover:opacity-100">Microsoft Clarity</a> to collect anonymised usage data — mouse movements, clicks, and page interactions. Clarity may set cookies and log your IP address. No file contents are ever captured. You can opt out via your browser's Do Not Track setting or a content blocker.</p>
     <h2 class="text-lg font-bold mono opacity-100 mt-8 mb-4">What we store</h2>
     <ul class="space-y-2">
       <li>— <code class="mono text-xs bg-[#F3F4F6] dark:bg-[#1a1a1a] px-1">smpl-dark</code>: Your dark mode preference (localStorage)</li>
-      <li>— Nothing else. Seriously.</li>
+      <li>— Microsoft Clarity cookies (session analytics — see <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener noreferrer" class="underline hover:opacity-100">Microsoft's privacy statement</a>)</li>
     </ul>
     <h2 class="text-lg font-bold mono opacity-100 mt-8 mb-4">Third-party resources</h2>
-    <p>We load CSS/JS from Google Fonts CDN, jsDelivr, Cloudflare CDN, and unpkg. These services may log your IP address as part of their normal CDN operation. We have no control over their logging practices.</p>
+    <p>We load CSS/JS from Google Fonts CDN, jsDelivr, Cloudflare CDN, and unpkg. We also load Microsoft Clarity for analytics. These services may log your IP address as part of their normal operation. We have no control over their logging practices.</p>
     <h2 class="text-lg font-bold mono opacity-100 mt-8 mb-4">Browser permissions</h2>
     <p>Some tools request browser permissions: microphone (audio recorder), screen capture (screen recorder). These are only requested when you click the start button — never automatically.</p>
   </div>
@@ -185,7 +187,7 @@ pre{white-space:pre-wrap;word-break:break-all}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs opacity-30">
       <span class="mono">smpl. v1.0.0</span>
       <span>90+ tools. All local. All free.</span>
-      <span>No cookies. No tracking. No uploads.</span>
+      <span>No uploads. All local. Analytics via Clarity.</span>
     </div>
   </div>
 </div>
