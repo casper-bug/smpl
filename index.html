@@ -1136,30 +1136,174 @@ async function imgStrip() {
   } catch(e) { showMsg('stripMsg', e, true); }
 }
 
+// ── Instagram Grid Creator ────────────────────────────────
+const gridState = {
+  img: null, rows: 3, cols: 3, zoom: 1,
+  panX: 0, panY: 0, cellOut: 1080,
+  dragging: false, lastX: 0, lastY: 0,
+  PREV: 360
+};
+
+function gridCoverScale(imgW, imgH, gridW, gridH) {
+  return Math.max(gridW / imgW, gridH / imgH);
+}
+
+function gridDraw() {
+  const s = gridState;
+  const canvas = document.getElementById('gridPreviewCanvas');
+  if (!canvas || !s.img) return;
+  const gridW = s.cols * s.cellOut;
+  const gridH = s.rows * s.cellOut;
+  const previewW = s.PREV;
+  const previewH = Math.round(s.PREV * gridH / gridW);
+  canvas.width = previewW;
+  canvas.height = previewH;
+  canvas.style.height = previewH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#333';
+  ctx.fillRect(0, 0, previewW, previewH);
+  const coverScale = gridCoverScale(s.img.naturalWidth, s.img.naturalHeight, gridW, gridH);
+  const totalScale = coverScale * s.zoom;
+  const dispImgW = s.img.naturalWidth * totalScale;
+  const dispImgH = s.img.naturalHeight * totalScale;
+  const imgOriginX = gridW / 2 - dispImgW / 2 + s.panX;
+  const imgOriginY = gridH / 2 - dispImgH / 2 + s.panY;
+  const pScale = previewW / gridW;
+  ctx.drawImage(s.img, imgOriginX * pScale, imgOriginY * pScale, dispImgW * pScale, dispImgH * pScale);
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+  ctx.lineWidth = 1.5;
+  const cW = previewW / s.cols;
+  const cH = previewH / s.rows;
+  for (let c = 1; c < s.cols; c++) { ctx.beginPath(); ctx.moveTo(c * cW, 0); ctx.lineTo(c * cW, previewH); ctx.stroke(); }
+  for (let r = 1; r < s.rows; r++) { ctx.beginPath(); ctx.moveTo(0, r * cH); ctx.lineTo(previewW, r * cH); ctx.stroke(); }
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(0, 0, previewW, previewH);
+  // Cell labels
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = `${Math.max(10, Math.floor(cW * 0.15))}px monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (let r = 0; r < s.rows; r++) {
+    for (let c = 0; c < s.cols; c++) {
+      ctx.fillText(`${r+1},${c+1}`, (c + 0.5) * cW, (r + 0.5) * cH);
+    }
+  }
+}
+
+function gridOnFile() {
+  const inp = document.getElementById('gridInput');
+  if (!inp || !inp.files[0]) return;
+  const url = URL.createObjectURL(inp.files[0]);
+  const img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    gridState.img = img;
+    gridState.panX = 0; gridState.panY = 0; gridState.zoom = 1;
+    const zoomEl = document.getElementById('gridZoom');
+    if (zoomEl) { zoomEl.value = 1; }
+    const zoomLbl = document.getElementById('gridZoomVal');
+    if (zoomLbl) zoomLbl.textContent = '1.0×';
+    document.getElementById('gridControls').style.display = '';
+    gridDraw();
+    gridAttachDrag();
+  };
+  img.src = url;
+}
+
+function gridUpdateSettings() {
+  gridState.rows = Math.max(1, Math.min(10, parseInt(document.getElementById('gridRows').value) || 3));
+  gridState.cols = Math.max(1, Math.min(10, parseInt(document.getElementById('gridCols').value) || 3));
+  gridState.cellOut = parseInt(document.getElementById('gridCellSize').value) || 1080;
+  gridDraw();
+}
+
+function gridZoomChange(val) {
+  gridState.zoom = parseFloat(val);
+  const lbl = document.getElementById('gridZoomVal');
+  if (lbl) lbl.textContent = parseFloat(val).toFixed(1) + '×';
+  gridDraw();
+}
+
+function gridEventPoint(e) {
+  const canvas = document.getElementById('gridPreviewCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+}
+
+function gridMouseDown(e) {
+  gridState.dragging = true;
+  const pt = gridEventPoint(e);
+  gridState.lastX = pt.x; gridState.lastY = pt.y;
+  e.preventDefault();
+}
+
+function gridMouseMove(e) {
+  if (!gridState.dragging) return;
+  const pt = gridEventPoint(e);
+  const canvas = document.getElementById('gridPreviewCanvas');
+  if (!canvas) return;
+  const gridW = gridState.cols * gridState.cellOut;
+  const scale = gridW / canvas.width;
+  gridState.panX += (pt.x - gridState.lastX) * scale;
+  gridState.panY += (pt.y - gridState.lastY) * scale;
+  gridState.lastX = pt.x; gridState.lastY = pt.y;
+  gridDraw();
+  e.preventDefault();
+}
+
+function gridMouseUp() { gridState.dragging = false; }
+
+function gridAttachDrag() {
+  const canvas = document.getElementById('gridPreviewCanvas');
+  if (!canvas) return;
+  canvas.onmousedown  = gridMouseDown;
+  canvas.onmousemove  = gridMouseMove;
+  canvas.onmouseup    = gridMouseUp;
+  canvas.onmouseleave = gridMouseUp;
+  canvas.ontouchstart = e => { gridMouseDown(e); };
+  canvas.ontouchmove  = e => { gridMouseMove(e); };
+  canvas.ontouchend   = gridMouseUp;
+}
+
 async function imgGrid() {
+  const s = gridState;
+  if (!s.img) { showMsg('gridMsg', 'Select an image first', true); return; }
+  showMsg('gridMsg', 'Generating cells…');
   try {
-    const img = await loadImgFile('gridInput');
-    const n = parseInt((document.getElementById('gridSize')||{value:'3'}).value) || 3;
-    const size = Math.min(img.naturalWidth, img.naturalHeight);
-    const ox = (img.naturalWidth - size) / 2;
-    const oy = (img.naturalHeight - size) / 2;
-    const cell = Math.floor(size / n);
+    const gridW = s.cols * s.cellOut;
+    const gridH = s.rows * s.cellOut;
+    const coverScale = gridCoverScale(s.img.naturalWidth, s.img.naturalHeight, gridW, gridH);
+    const totalScale = coverScale * s.zoom;
+    const dispImgW = s.img.naturalWidth * totalScale;
+    const dispImgH = s.img.naturalHeight * totalScale;
+    const imgOriginX = gridW / 2 - dispImgW / 2 + s.panX;
+    const imgOriginY = gridH / 2 - dispImgH / 2 + s.panY;
     const zip = new JSZip();
     const promises = [];
-    for (let row=0; row<n; row++) {
-      for (let col=0; col<n; col++) {
-        const c = mkCanvas(cell, cell);
-        c.getContext('2d').drawImage(img, ox + col*cell, oy + row*cell, cell, cell, 0, 0, cell, cell);
-        promises.push(canvasToBlob(c).then(blob => {
-          return blob.arrayBuffer().then(buf => zip.file(`cell_${row+1}_${col+1}.png`, buf));
-        }));
+    for (let r = 0; r < s.rows; r++) {
+      for (let c = 0; c < s.cols; c++) {
+        const canvas = mkCanvas(s.cellOut, s.cellOut);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, s.cellOut, s.cellOut);
+        const srcX = (c * s.cellOut - imgOriginX) / totalScale;
+        const srcY = (r * s.cellOut - imgOriginY) / totalScale;
+        const srcW = s.cellOut / totalScale;
+        const srcH = s.cellOut / totalScale;
+        ctx.drawImage(s.img, srcX, srcY, srcW, srcH, 0, 0, s.cellOut, s.cellOut);
+        promises.push(canvasToBlob(canvas).then(blob =>
+          blob.arrayBuffer().then(buf => zip.file(`r${r+1}_c${c+1}.png`, buf))
+        ));
       }
     }
     await Promise.all(promises);
     const zipBlob = await zip.generateAsync({type:'blob'});
-    download(zipBlob, 'grid_cells.zip');
-    showMsg('gridMsg', `Grid split into ${n*n} cells (${cell}×${cell} each)`);
-  } catch(e) { showMsg('gridMsg', e, true); }
+    download(zipBlob, 'instagram_grid.zip');
+    showMsg('gridMsg', `Downloaded ${s.rows * s.cols} cells (${s.cellOut}×${s.cellOut}px each)`);
+  } catch(e) { showMsg('gridMsg', e.message || e, true); }
 }
 
 async function imgCircle() {
@@ -3031,15 +3175,38 @@ ${fileDrop('stripInput','image/*',false,'imgStrip()','mb-4')}
 <button class="smpl-btn" onclick="imgStrip()">Strip &amp; Download</button>
 <div id="stripMsg" class="text-xs mt-3" style="display:none"></div>`},
 
-{id:'grid.img',name:'Grid Split',cat:'Image',tagline:'Split an image into a 3×3 grid of 9 cells',desc:'Crops the image to a square then divides it into 9 equal cells. Useful for Instagram grid posts. Downloaded as a ZIP.',
+{id:'grid.img',name:'Grid Split',cat:'Image',tagline:'Interactive Instagram grid creator with live preview',desc:'Upload an image, choose your grid size and output resolution, then drag and zoom the image to perfectly frame your grid. Each cell downloads as a separate PNG in a ZIP.',
 render:()=>`
-${fileDrop('gridInput','image/*',false,'','mb-4')}
-<select id="gridSize" class="smpl-select mb-4" style="max-width:220px">
-  <option value="3">3×3 (9 cells)</option>
-  <option value="2">2×2 (4 cells)</option>
-  <option value="4">4×4 (16 cells)</option>
-</select>
-<button class="smpl-btn" onclick="imgGrid()">Split Grid</button>
+${fileDrop('gridInput','image/*',false,'gridOnFile()','mb-4')}
+<div id="gridControls" style="display:none">
+  <div class="flex gap-3 mb-4 flex-wrap">
+    <div class="flex-1 min-w-20">
+      <label class="text-xs opacity-50 block mb-1">Rows</label>
+      <input type="number" id="gridRows" value="3" min="1" max="10" class="smpl-input text-sm" oninput="gridUpdateSettings()">
+    </div>
+    <div class="flex-1 min-w-20">
+      <label class="text-xs opacity-50 block mb-1">Columns</label>
+      <input type="number" id="gridCols" value="3" min="1" max="10" class="smpl-input text-sm" oninput="gridUpdateSettings()">
+    </div>
+    <div class="flex-1 min-w-44">
+      <label class="text-xs opacity-50 block mb-1">Cell size</label>
+      <select id="gridCellSize" class="smpl-select" onchange="gridUpdateSettings()">
+        <option value="1080" selected>1080×1080 px (Instagram)</option>
+        <option value="1350">1080×1350 px (Portrait)</option>
+        <option value="720">720×720 px</option>
+        <option value="600">600×600 px</option>
+        <option value="300">300×300 px</option>
+      </select>
+    </div>
+  </div>
+  <div class="mb-4">
+    <label class="text-xs opacity-50 block mb-1">Zoom: <span id="gridZoomVal">1.0×</span></label>
+    <input type="range" id="gridZoom" min="0.5" max="5" step="0.05" value="1" class="w-full max-w-sm" oninput="gridZoomChange(this.value)">
+  </div>
+  <p class="text-xs opacity-40 mb-2">Drag the preview to reposition the image within the grid.</p>
+  <canvas id="gridPreviewCanvas" style="max-width:100%;cursor:grab;border:1px solid #F3F4F6;display:block;touch-action:none" class="dark:border-[#262626] mb-4"></canvas>
+  <button class="smpl-btn" onclick="imgGrid()">Download Grid ZIP</button>
+</div>
 <div id="gridMsg" class="text-xs mt-3" style="display:none"></div>`},
 
 {id:'circle.img',name:'Circle Crop',cat:'Image',tagline:'Crop an image to a perfect circle',desc:'Centers and crops your image to a circle. The output is a square PNG with transparent corners.',
