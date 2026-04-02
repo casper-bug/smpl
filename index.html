@@ -1089,6 +1089,7 @@ function imgResizePreview() {
     document.getElementById('resizeW').value = img.naturalWidth;
     document.getElementById('resizeH').value = img.naturalHeight;
     document.getElementById('resizeInfo').textContent = `Original: ${img.naturalWidth} x ${img.naturalHeight}`;
+    resizeUpdateEst();
   }).catch(e => showMsg('resizeMsg', e, true));
 }
 
@@ -1101,6 +1102,36 @@ function resizeLockAspect(changed) {
     const h = parseInt(document.getElementById('resizeH').value);
     if (h) document.getElementById('resizeW').value = Math.round(h * resizeAspect);
   }
+  resizeUpdateEst();
+}
+
+let resizeEstTimer = null;
+function resizeUpdateEst() {
+  clearTimeout(resizeEstTimer);
+  resizeEstTimer = setTimeout(async () => {
+    const inp = document.getElementById('resizeInput');
+    const estEl = document.getElementById('resizeSizeEst');
+    if (!inp || !inp.files || !inp.files[0] || !estEl) return;
+    try {
+      estEl.textContent = 'Estimating…';
+      const img = await loadImgFile('resizeInput');
+      const w = parseInt(document.getElementById('resizeW').value) || img.naturalWidth;
+      const h = parseInt(document.getElementById('resizeH').value) || img.naturalHeight;
+      const fmt = (document.getElementById('resizeFmt') || {value:'png'}).value;
+      const mimeType = fmt === 'jpeg' ? 'image/jpeg' : fmt === 'webp' ? 'image/webp' : 'image/png';
+      const useKb = document.getElementById('resizeUseKb') && document.getElementById('resizeUseKb').checked;
+      let quality;
+      if (!useKb && fmt !== 'png') {
+        const qEl = document.getElementById('resizeQuality');
+        quality = qEl ? parseFloat(qEl.value) : 0.92;
+      }
+      const c = mkCanvas(w, h);
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      const blob = await canvasToBlob(c, mimeType, quality);
+      const sizeKb = (blob.size / 1024).toFixed(1);
+      if (estEl) estEl.textContent = `Estimated output: ${w}×${h} — ~${sizeKb} KB`;
+    } catch(e) { if (estEl) estEl.textContent = ''; }
+  }, 400);
 }
 
 async function imgResize() {
@@ -1147,6 +1178,7 @@ function resizeFmtChange() {
   if (qualGroup) qualGroup.style.display = isLossy ? '' : 'none';
   if (kbRow) kbRow.style.display = isLossy ? '' : 'none';
   if (!isLossy && kbCheck) { kbCheck.checked = false; if (kbGroup) kbGroup.style.display = 'none'; }
+  resizeUpdateEst();
 }
 
 function resizeToggleKb() {
@@ -1157,22 +1189,167 @@ function resizeToggleKb() {
   if (kbGroup) kbGroup.style.display = checked ? '' : 'none';
 }
 
+// ============================================================
+// CROP IMAGE — CANVAS INTERACTIVE
+// ============================================================
+let cropImg = null, cropCanvas = null, cropCtx = null;
+let cropRect = {x:0,y:0,w:0,h:0};
+let cropScale = 1;
+let cropDrag = null;
+
 function imgCropPreview() {
   loadImgFile('cropImgInput').then(img => {
-    document.getElementById('cropImgInfo').textContent = `Image: ${img.naturalWidth} x ${img.naturalHeight}`;
-    document.getElementById('cropW').value = img.naturalWidth;
-    document.getElementById('cropH').value = img.naturalHeight;
+    cropImg = img;
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    document.getElementById('cropImgInfo').textContent = `Image: ${iw} × ${ih}`;
+    document.getElementById('cropX').value = 0;
+    document.getElementById('cropY').value = 0;
+    document.getElementById('cropW').value = iw;
+    document.getElementById('cropH').value = ih;
+    cropRect = {x:0, y:0, w:iw, h:ih};
+    cropCanvasInit();
   }).catch(e => showMsg('cropImgMsg', e, true));
 }
 
+function cropCanvasInit() {
+  const wrap = document.getElementById('cropCanvasWrap');
+  if (!wrap || !cropImg) return;
+  wrap.style.display = 'block';
+  cropCanvas = document.getElementById('cropCanvas');
+  cropCtx = cropCanvas.getContext('2d');
+  const maxW = Math.min(wrap.clientWidth || 600, 700);
+  const iw = cropImg.naturalWidth, ih = cropImg.naturalHeight;
+  cropScale = Math.min(1, maxW / iw);
+  cropCanvas.width = Math.round(iw * cropScale);
+  cropCanvas.height = Math.round(ih * cropScale);
+  cropRender();
+  cropCanvas.onmousedown = cropPointerDown;
+  cropCanvas.onmousemove = cropPointerMove;
+  cropCanvas.onmouseup = cropPointerUp;
+  cropCanvas.onmouseleave = cropPointerUp;
+  cropCanvas.ontouchstart = e => { e.preventDefault(); cropPointerDown(e.touches[0]); };
+  cropCanvas.ontouchmove = e => { e.preventDefault(); cropPointerMove(e.touches[0]); };
+  cropCanvas.ontouchend = e => { e.preventDefault(); cropPointerUp(); };
+}
+
+function cropRender() {
+  if (!cropCtx || !cropImg) return;
+  const cw = cropCanvas.width, ch = cropCanvas.height;
+  cropCtx.drawImage(cropImg, 0, 0, cw, ch);
+  const rx = cropRect.x * cropScale, ry = cropRect.y * cropScale;
+  const rw = cropRect.w * cropScale, rh = cropRect.h * cropScale;
+  cropCtx.fillStyle = 'rgba(0,0,0,0.45)';
+  cropCtx.fillRect(0, 0, cw, ry);
+  cropCtx.fillRect(0, ry + rh, cw, ch - ry - rh);
+  cropCtx.fillRect(0, ry, rx, rh);
+  cropCtx.fillRect(rx + rw, ry, cw - rx - rw, rh);
+  cropCtx.strokeStyle = '#fff';
+  cropCtx.lineWidth = 1.5;
+  cropCtx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1);
+  // Rule-of-thirds grid
+  cropCtx.strokeStyle = 'rgba(255,255,255,0.3)';
+  cropCtx.lineWidth = 0.5;
+  [1/3,2/3].forEach(f => {
+    cropCtx.beginPath(); cropCtx.moveTo(rx + rw*f, ry); cropCtx.lineTo(rx + rw*f, ry+rh); cropCtx.stroke();
+    cropCtx.beginPath(); cropCtx.moveTo(rx, ry + rh*f); cropCtx.lineTo(rx+rw, ry + rh*f); cropCtx.stroke();
+  });
+  // Corner handles
+  const handleSize = 8;
+  const corners = [[rx,ry],[rx+rw-handleSize,ry],[rx,ry+rh-handleSize],[rx+rw-handleSize,ry+rh-handleSize]];
+  cropCtx.fillStyle = '#fff';
+  corners.forEach(([hx,hy]) => cropCtx.fillRect(hx, hy, handleSize, handleSize));
+  // Edge handles
+  cropCtx.fillRect(rx + rw/2 - handleSize/2, ry, handleSize, handleSize);
+  cropCtx.fillRect(rx + rw/2 - handleSize/2, ry+rh-handleSize, handleSize, handleSize);
+  cropCtx.fillRect(rx, ry + rh/2 - handleSize/2, handleSize, handleSize);
+  cropCtx.fillRect(rx+rw-handleSize, ry + rh/2 - handleSize/2, handleSize, handleSize);
+}
+
+function cropHitHandle(x, y) {
+  const rx = cropRect.x * cropScale, ry = cropRect.y * cropScale;
+  const rw = cropRect.w * cropScale, rh = cropRect.h * cropScale;
+  const hitboxSize = 12;
+  const handles = [
+    {n:'nw',x:rx,y:ry},{n:'n',x:rx+rw/2-hitboxSize/2,y:ry},{n:'ne',x:rx+rw-hitboxSize,y:ry},
+    {n:'w',x:rx,y:ry+rh/2-hitboxSize/2},{n:'e',x:rx+rw-hitboxSize,y:ry+rh/2-hitboxSize/2},
+    {n:'sw',x:rx,y:ry+rh-hitboxSize},{n:'s',x:rx+rw/2-hitboxSize/2,y:ry+rh-hitboxSize},{n:'se',x:rx+rw-hitboxSize,y:ry+rh-hitboxSize}
+  ];
+  for (const h of handles) if (x>=h.x && x<=h.x+hitboxSize && y>=h.y && y<=h.y+hitboxSize) return h.n;
+  if (x>=rx && x<=rx+rw && y>=ry && y<=ry+rh) return 'move';
+  return null;
+}
+
+function cropGetXY(e) {
+  const r = cropCanvas.getBoundingClientRect();
+  return {x: e.clientX - r.left, y: e.clientY - r.top};
+}
+
+function cropPointerDown(e) {
+  const {x, y} = cropGetXY(e);
+  const handle = cropHitHandle(x, y);
+  cropDrag = {handle: handle || 'new', startX: x, startY: y, origRect: {...cropRect}};
+}
+
+function cropPointerMove(e) {
+  if (!cropDrag) {
+    const {x,y} = cropGetXY(e);
+    const h = cropHitHandle(x, y);
+    const cur = {nw:'nw-resize',n:'n-resize',ne:'ne-resize',w:'w-resize',e:'e-resize',sw:'sw-resize',s:'s-resize',se:'se-resize',move:'move'};
+    cropCanvas.style.cursor = h ? (cur[h]||'crosshair') : 'crosshair';
+    return;
+  }
+  const {x, y} = cropGetXY(e);
+  const dx = (x - cropDrag.startX) / cropScale;
+  const dy = (y - cropDrag.startY) / cropScale;
+  const iw = cropImg.naturalWidth, ih = cropImg.naturalHeight;
+  const o = cropDrag.origRect;
+  let {x:rx, y:ry, w:rw, h:rh} = o;
+  if (cropDrag.handle === 'new') {
+    const nx = Math.min(x, cropDrag.startX) / cropScale;
+    const ny = Math.min(y, cropDrag.startY) / cropScale;
+    cropRect = {
+      x: Math.max(0, nx), y: Math.max(0, ny),
+      w: Math.min(Math.abs(x - cropDrag.startX) / cropScale, iw - Math.max(0,nx)),
+      h: Math.min(Math.abs(y - cropDrag.startY) / cropScale, ih - Math.max(0,ny))
+    };
+  } else if (cropDrag.handle === 'move') {
+    cropRect = {x: Math.max(0, Math.min(rx+dx, iw-rw)), y: Math.max(0, Math.min(ry+dy, ih-rh)), w:rw, h:rh};
+  } else {
+    const h = cropDrag.handle;
+    if (h.includes('e')) rw = Math.max(1, o.w + dx);
+    if (h.includes('s')) rh = Math.max(1, o.h + dy);
+    if (h.includes('w')) { rx = o.x + dx; rw = Math.max(1, o.w - dx); }
+    if (h.includes('n')) { ry = o.y + dy; rh = Math.max(1, o.h - dy); }
+    cropRect = {x:Math.max(0,rx), y:Math.max(0,ry), w:Math.min(rw,iw-Math.max(0,rx)), h:Math.min(rh,ih-Math.max(0,ry))};
+  }
+  document.getElementById('cropX').value = Math.round(cropRect.x);
+  document.getElementById('cropY').value = Math.round(cropRect.y);
+  document.getElementById('cropW').value = Math.round(cropRect.w);
+  document.getElementById('cropH').value = Math.round(cropRect.h);
+  cropRender();
+}
+
+function cropPointerUp() { cropDrag = null; }
+
+function cropSyncFromInputs() {
+  if (!cropImg) return;
+  const iw = cropImg.naturalWidth, ih = cropImg.naturalHeight;
+  cropRect = {
+    x: Math.max(0, parseInt(document.getElementById('cropX').value)||0),
+    y: Math.max(0, parseInt(document.getElementById('cropY').value)||0),
+    w: Math.min(Math.max(1, parseInt(document.getElementById('cropW').value)||iw), iw),
+    h: Math.min(Math.max(1, parseInt(document.getElementById('cropH').value)||ih), ih)
+  };
+  cropRender();
+}
+
 function setCropPreset(ratio) {
-  const wEl = document.getElementById('cropW');
-  const hEl = document.getElementById('cropH');
-  if (!wEl || !hEl) return;
-  const currentW = parseInt(wEl.value) || parseInt(document.getElementById('cropImgInfo').textContent) || 800;
-  const w = currentW || 800;
+  if (!cropImg) return;
+  const iw = cropImg.naturalWidth, ih = cropImg.naturalHeight;
+  const w = parseInt(document.getElementById('cropW').value) || iw;
   const h = Math.round(w / ratio);
-  hEl.value = h;
+  document.getElementById('cropH').value = Math.min(h, ih);
+  cropSyncFromInputs();
 }
 
 async function imgCrop() {
@@ -1186,9 +1363,10 @@ async function imgCrop() {
     c.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
     const blob = await canvasToBlob(c);
     download(blob, 'cropped.png');
-    showMsg('cropImgMsg', `Cropped to ${w}x${h}`);
+    showMsg('cropImgMsg', `Cropped to ${w}×${h}`);
   } catch(e) { showMsg('cropImgMsg', e, true); }
 }
+
 
 async function imgStrip() {
   try {
@@ -2712,6 +2890,90 @@ function cloneBuffer(ctx, src, startSample, endSample, channels) {
   return out;
 }
 
+// ============================================================
+// AUDIO TRIM — LIVE PREVIEW + SLIDERS
+// ============================================================
+let audioTrimDuration = 0;
+
+function audioTrimLoad() {
+  const inp = document.getElementById('audioTrimInput');
+  if (!inp || !inp.files || !inp.files[0]) return;
+  const url = URL.createObjectURL(inp.files[0]);
+  const player = document.getElementById('audioTrimPlayer');
+  if (!player) return;
+  player.src = url;
+  player.style.display = 'block';
+  player.onloadedmetadata = () => {
+    audioTrimDuration = player.duration;
+    const ss = document.getElementById('audioTrimStartSlider');
+    const es = document.getElementById('audioTrimEndSlider');
+    const ei = document.getElementById('audioTrimEnd');
+    if (ss) { ss.max = audioTrimDuration; ss.value = 0; }
+    if (es) { es.max = audioTrimDuration; es.value = audioTrimDuration; }
+    if (ei) ei.value = audioTrimDuration.toFixed(3);
+    document.getElementById('audioTrimStart').value = '0.000';
+    const durEl = document.getElementById('audioTrimDur');
+    if (durEl) durEl.textContent = `Duration: ${audioTrimDuration.toFixed(2)}s`;
+    audioTrimUpdateSel();
+  };
+}
+
+function audioTrimSyncSlider(which) {
+  const dur = audioTrimDuration || 100;
+  if (which === 'start') {
+    const v = Math.max(0, Math.min(parseFloat(document.getElementById('audioTrimStart').value)||0, dur));
+    const sl = document.getElementById('audioTrimStartSlider');
+    if (sl) sl.value = v;
+  } else {
+    const v = Math.max(0, Math.min(parseFloat(document.getElementById('audioTrimEnd').value)||dur, dur));
+    const sl = document.getElementById('audioTrimEndSlider');
+    if (sl) sl.value = v;
+  }
+  audioTrimUpdateSel();
+}
+
+function audioTrimSyncNum(which) {
+  if (which === 'start') {
+    document.getElementById('audioTrimStart').value = parseFloat(document.getElementById('audioTrimStartSlider').value).toFixed(3);
+  } else {
+    document.getElementById('audioTrimEnd').value = parseFloat(document.getElementById('audioTrimEndSlider').value).toFixed(3);
+  }
+  audioTrimUpdateSel();
+}
+
+function audioTrimAdj(which, delta) {
+  const inpId = which === 'start' ? 'audioTrimStart' : 'audioTrimEnd';
+  const slId  = which === 'start' ? 'audioTrimStartSlider' : 'audioTrimEndSlider';
+  const inp = document.getElementById(inpId);
+  const sl  = document.getElementById(slId);
+  const dur = audioTrimDuration || 100;
+  const v = Math.max(0, Math.min((parseFloat(inp.value)||0) + delta, dur));
+  inp.value = v.toFixed(3);
+  if (sl) sl.value = v;
+  audioTrimUpdateSel();
+}
+
+function audioTrimUpdateSel() {
+  const start = parseFloat(document.getElementById('audioTrimStart').value)||0;
+  const end   = parseFloat(document.getElementById('audioTrimEnd').value)||audioTrimDuration;
+  const dur   = end - start;
+  const el = document.getElementById('audioTrimSelection');
+  if (el && audioTrimDuration > 0) el.textContent = dur > 0 ? `Selection: ${start.toFixed(3)}s → ${end.toFixed(3)}s  (${dur.toFixed(3)}s)` : '⚠ Start must be before end';
+}
+
+function audioTrimPreview() {
+  const player = document.getElementById('audioTrimPlayer');
+  if (!player || !audioTrimDuration) { showMsg('audioTrimMsg','Load an audio file first',true); return; }
+  const start = parseFloat(document.getElementById('audioTrimStart').value)||0;
+  const end   = parseFloat(document.getElementById('audioTrimEnd').value)||audioTrimDuration;
+  if (start >= end) { showMsg('audioTrimMsg','Start must be before end',true); return; }
+  player.currentTime = start;
+  player.play().catch(()=>{});
+  const stop = () => { if (player.currentTime >= end - 0.05) { player.pause(); player.removeEventListener('timeupdate', stop); } };
+  player.addEventListener('timeupdate', stop);
+  showMsg('audioTrimMsg', `▶ Previewing ${start.toFixed(2)}s → ${end.toFixed(2)}s`);
+}
+
 // 1. Trim Audio
 async function audioTrim() {
   try {
@@ -2727,6 +2989,7 @@ async function audioTrim() {
     ctx.close();
   } catch(e) { showMsg('audioTrimMsg', e.message, true); }
 }
+
 
 // 2. Merge Audio
 async function audioMerge() {
@@ -2911,6 +3174,117 @@ async function audioSilenceTrim() {
     showMsg('audioSilMsg', `Trimmed ${trimmed}s of silence — ${out.duration.toFixed(2)}s remaining`);
     ctx.close();
   } catch(e) { showMsg('audioSilMsg', e.message, true); }
+}
+
+// ============================================================
+// FONT PAIR TOOL
+// ============================================================
+const FONT_PAIRS = [
+  {id:'fp1',name:'Classic Editorial',heading:'Playfair Display',body:'Source Sans 3',type:'Serif + Sans',mood:'Elegant',hW:'700',bW:'400;600'},
+  {id:'fp2',name:'Trusted Authority',heading:'Merriweather',body:'Open Sans',type:'Serif + Sans',mood:'Professional',hW:'700',bW:'400;600'},
+  {id:'fp3',name:'Modern Startup',heading:'Poppins',body:'Poppins',type:'Sans + Sans',mood:'Modern',hW:'700',bW:'400;500'},
+  {id:'fp4',name:'Bold Statement',heading:'Oswald',body:'Open Sans',type:'Display + Sans',mood:'Strong',hW:'600',bW:'400;600'},
+  {id:'fp5',name:'Friendly & Warm',heading:'Nunito',body:'Nunito',type:'Sans + Sans',mood:'Friendly',hW:'800',bW:'400;600'},
+  {id:'fp6',name:'Tech Minimal',heading:'Space Grotesk',body:'Space Grotesk',type:'Sans + Sans',mood:'Technical',hW:'700',bW:'400;500'},
+  {id:'fp7',name:'Luxury Brand',heading:'Cormorant Garamond',body:'Proza Libre',type:'Serif + Serif',mood:'Luxury',hW:'700',bW:'400;600'},
+  {id:'fp8',name:'Creative Agency',heading:'Raleway',body:'Lato',type:'Sans + Sans',mood:'Creative',hW:'700',bW:'400;700'},
+  {id:'fp9',name:'Art Direction',heading:'Abril Fatface',body:'Poppins',type:'Display + Sans',mood:'Editorial',hW:'400',bW:'400;500'},
+  {id:'fp10',name:'Academic',heading:'Libre Baskerville',body:'Source Sans 3',type:'Serif + Sans',mood:'Academic',hW:'700',bW:'400;600'},
+  {id:'fp11',name:'News & Media',heading:'Roboto Slab',body:'Roboto',type:'Slab + Sans',mood:'Neutral',hW:'700',bW:'400;500'},
+  {id:'fp12',name:'Geometric Clean',heading:'Josefin Sans',body:'Josefin Sans',type:'Sans + Sans',mood:'Geometric',hW:'700',bW:'400;600'},
+  {id:'fp13',name:'Expressive Web',heading:'DM Serif Display',body:'DM Sans',type:'Serif + Sans',mood:'Expressive',hW:'400',bW:'400;500'},
+  {id:'fp14',name:'Corporate Modern',heading:'Montserrat',body:'Hind',type:'Sans + Sans',mood:'Corporate',hW:'700',bW:'400;600'},
+  {id:'fp15',name:'Warm Editorial',heading:'Spectral',body:'Karla',type:'Serif + Sans',mood:'Warm',hW:'700',bW:'400;600'},
+];
+
+let fpSelected = null;
+
+function fontPairLoadFonts(pair) {
+  const id = 'fp-link-' + pair.id;
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = 'stylesheet';
+  const h = pair.heading.replace(/ /g,'+');
+  const b = pair.body.replace(/ /g,'+');
+  const same = pair.heading === pair.body;
+  link.href = same
+    ? `https://fonts.googleapis.com/css2?family=${h}:wght@${pair.hW};${pair.bW}&display=swap`
+    : `https://fonts.googleapis.com/css2?family=${h}:wght@${pair.hW}&family=${b}:wght@${pair.bW}&display=swap`;
+  document.head.appendChild(link);
+}
+
+function fontPairRenderCards() {
+  const grid = document.getElementById('fpGrid');
+  if (!grid) return;
+  const filter = (document.getElementById('fpFilter')||{value:'ALL'}).value;
+  grid.innerHTML = '';
+  FONT_PAIRS
+    .filter(p => filter === 'ALL' || p.type.startsWith(filter))
+    .forEach(p => {
+      fontPairLoadFonts(p);
+      const card = document.createElement('div');
+      card.className = 'smpl-card cursor-pointer';
+      card.style.padding = '16px';
+      card.onclick = () => fontPairSelect(p.id);
+      card.innerHTML = `
+        <div class="text-xs opacity-40 mb-2 uppercase tracking-widest">${p.type} · ${p.mood}</div>
+        <div style="font-family:'${p.heading}',serif;font-weight:${p.hW};font-size:22px;line-height:1.2;margin-bottom:6px">${p.name}</div>
+        <div style="font-family:'${p.body}',sans-serif;font-size:12px;opacity:0.7;line-height:1.5">The quick brown fox jumps over the lazy dog</div>
+        <div class="text-xs opacity-40 mt-3">${p.heading} / ${p.body}</div>`;
+      grid.appendChild(card);
+    });
+}
+
+function fontPairSelect(id) {
+  fpSelected = FONT_PAIRS.find(p => p.id === id);
+  if (!fpSelected) return;
+  fontPairLoadFonts(fpSelected);
+  const preview = document.getElementById('fpPreview');
+  if (!preview) return;
+  const p = fpSelected;
+  const hf = `'${p.heading}',serif`;
+  const bf = `'${p.body}',sans-serif`;
+  const hw = p.hW.split(';')[0];
+  const bw = p.bW.split(';')[0];
+  const samples = [
+    {label:'Display',size:56,font:hf,weight:hw,text:'The Art of Typography'},
+    {label:'H1',size:40,font:hf,weight:hw,text:'Main Page Heading'},
+    {label:'H2',size:30,font:hf,weight:hw,text:'Section Heading'},
+    {label:'H3',size:22,font:hf,weight:hw,text:'Sub-section Heading'},
+    {label:'H4',size:18,font:hf,weight:hw,text:'Card or Panel Heading'},
+    {label:'Body',size:16,font:bf,weight:bw,text:'The quick brown fox jumps over the lazy dog. Sphinx of black quartz, judge my vow. Typography is the art and technique of arranging type to make written language legible and beautiful.'},
+    {label:'Small',size:12,font:bf,weight:bw,text:'Caption, label, or footnote text — small and readable'},
+  ];
+  const googleUrl = p.heading === p.body
+    ? `https://fonts.googleapis.com/css2?family=${p.heading.replace(/ /g,'+')}:wght@${p.hW};${p.bW}&display=swap`
+    : `https://fonts.googleapis.com/css2?family=${p.heading.replace(/ /g,'+')}:wght@${p.hW}&family=${p.body.replace(/ /g,'+')}:wght@${p.bW}&display=swap`;
+  preview.style.display = 'block';
+  preview.innerHTML = `
+    <div class="border border-[#F3F4F6] dark:border-[#262626] p-6 mb-4">
+      <div class="flex justify-between items-start mb-6 flex-wrap gap-3">
+        <div>
+          <div class="text-xs uppercase tracking-widest opacity-40 mb-1">${p.type} · ${p.mood}</div>
+          <div class="text-xl font-bold mono">${p.name}</div>
+          <div class="text-xs opacity-50 mt-1">Heading: ${p.heading} &nbsp;·&nbsp; Body: ${p.body}</div>
+        </div>
+        <button class="smpl-btn-outline text-xs" onclick="fontPairCopyUrl()">Copy @import URL</button>
+      </div>
+      ${samples.map(s=>`
+        <div class="flex gap-4 items-baseline border-t border-[#F3F4F6] dark:border-[#262626] py-4">
+          <div class="text-xs opacity-30 w-14 shrink-0 text-right">${s.label}<br>${s.size}px</div>
+          <div style="font-family:${s.font};font-weight:${s.weight};font-size:${s.size}px;line-height:1.3;word-break:break-word">${s.text}</div>
+        </div>`).join('')}
+    </div>
+    <div class="text-xs opacity-40 mb-1">CSS @import</div>
+    <div id="fpImportBox" class="smpl-textarea mono text-xs" style="min-height:auto;padding:12px;font-size:11px;border:1px solid #F3F4F6;resize:none;overflow:auto;cursor:text" class="dark:border-[#262626]">@import url('${googleUrl}');</div>`;
+}
+
+function fontPairCopyUrl() {
+  const box = document.getElementById('fpImportBox');
+  if (!box) return;
+  copyToClipboard(box.textContent.trim());
+  showMsg('fpMsg','Copied to clipboard!');
 }
 
 // ============================================================
@@ -3177,11 +3551,11 @@ ${fileDrop('resizeInput','image/*',false,'imgResizePreview()','mb-4')}
 <div class="flex gap-4 mb-4 flex-wrap">
   <div class="flex-1 min-w-32">
     <label class="text-xs opacity-50 block mb-1">Width (px)</label>
-    <input type="number" id="resizeW" placeholder="800" class="smpl-input text-sm" oninput="resizeLockAspect('w')">
+    <input type="number" id="resizeW" placeholder="800" class="smpl-input text-sm" oninput="resizeLockAspect('w');resizeUpdateEst()">
   </div>
   <div class="flex-1 min-w-32">
     <label class="text-xs opacity-50 block mb-1">Height (px)</label>
-    <input type="number" id="resizeH" placeholder="600" class="smpl-input text-sm" oninput="resizeLockAspect('h')">
+    <input type="number" id="resizeH" placeholder="600" class="smpl-input text-sm" oninput="resizeLockAspect('h');resizeUpdateEst()">
   </div>
 </div>
 <label class="flex items-center gap-2 text-sm mb-4 cursor-pointer">
@@ -3198,24 +3572,29 @@ ${fileDrop('resizeInput','image/*',false,'imgResizePreview()','mb-4')}
   </div>
   <div class="flex-1 min-w-32" id="resizeQualGroup" style="display:none">
     <label class="text-xs opacity-50 block mb-1">Quality: <span id="resizeQualVal">0.92</span></label>
-    <input type="range" id="resizeQuality" min="0.1" max="1" step="0.05" value="0.92" class="w-full mt-2" oninput="document.getElementById('resizeQualVal').textContent=parseFloat(this.value).toFixed(2)">
+    <input type="range" id="resizeQuality" min="0.1" max="1" step="0.05" value="0.92" class="w-full mt-2" oninput="document.getElementById('resizeQualVal').textContent=parseFloat(this.value).toFixed(2);resizeUpdateEst()">
   </div>
 </div>
 <label class="flex items-center gap-2 text-sm mb-2 cursor-pointer" id="resizeKbToggleRow" style="display:none">
   <input type="checkbox" id="resizeUseKb" onchange="resizeToggleKb()"> Target file size
 </label>
-<div id="resizeSizeKbGroup" style="display:none" class="mb-6">
+<div id="resizeSizeKbGroup" style="display:none" class="mb-4">
   <label class="text-xs opacity-50 block mb-1">Target size (KB)</label>
   <input type="number" id="resizeSizeKb" placeholder="200" class="smpl-input text-sm" style="max-width:160px">
   <p class="text-xs opacity-40 mt-2">Quality is adjusted automatically. Only for JPEG / WebP.</p>
 </div>
+<div id="resizeSizeEst" class="text-xs opacity-60 mb-4"></div>
 <button class="smpl-btn mt-2" onclick="imgResize()">Resize &amp; Download</button>
 <div id="resizeMsg" class="text-xs mt-3" style="display:none"></div>`},
 
-{id:'crop.img',name:'Crop Image',cat:'Image',tagline:'Crop a rectangular area from an image',desc:'Specify crop origin (x,y) and dimensions to extract a rectangular region from your image.',
+{id:'crop.img',name:'Crop Image',cat:'Image',tagline:'Crop a rectangular area from an image — drag to select',desc:'Load an image and drag on the canvas to visually select a crop region. Adjust with handles or type exact pixel values. Use aspect ratio presets for quick selection.',
 render:()=>`
 ${fileDrop('cropImgInput','image/*',false,'imgCropPreview()','mb-4')}
-<div id="cropImgInfo" class="text-xs opacity-50 mb-4"></div>
+<div id="cropImgInfo" class="text-xs opacity-50 mb-3"></div>
+<div id="cropCanvasWrap" style="display:none" class="mb-4">
+  <canvas id="cropCanvas" style="cursor:crosshair;display:block;max-width:100%;border:1px solid #F3F4F6;touch-action:none" class="dark:border-[#262626]"></canvas>
+  <p class="text-xs opacity-40 mt-2">Drag to draw crop area · Drag handles to resize · Drag inside to move</p>
+</div>
 <div class="flex flex-wrap gap-2 mb-3">
   <button class="smpl-btn-outline text-xs" onclick="setCropPreset(1)">1:1</button>
   <button class="smpl-btn-outline text-xs" onclick="setCropPreset(16/9)">16:9</button>
@@ -3224,10 +3603,10 @@ ${fileDrop('cropImgInput','image/*',false,'imgCropPreview()','mb-4')}
   <button class="smpl-btn-outline text-xs" onclick="setCropPreset(3/2)">3:2</button>
 </div>
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-  <div><label class="text-xs opacity-50 block mb-1">X (px)</label><input type="number" id="cropX" value="0" min="0" class="smpl-input text-sm"></div>
-  <div><label class="text-xs opacity-50 block mb-1">Y (px)</label><input type="number" id="cropY" value="0" min="0" class="smpl-input text-sm"></div>
-  <div><label class="text-xs opacity-50 block mb-1">Width (px)</label><input type="number" id="cropW" placeholder="full" class="smpl-input text-sm"></div>
-  <div><label class="text-xs opacity-50 block mb-1">Height (px)</label><input type="number" id="cropH" placeholder="full" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">X (px)</label><input type="number" id="cropX" value="0" min="0" class="smpl-input text-sm" oninput="cropSyncFromInputs()"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Y (px)</label><input type="number" id="cropY" value="0" min="0" class="smpl-input text-sm" oninput="cropSyncFromInputs()"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Width (px)</label><input type="number" id="cropW" placeholder="full" class="smpl-input text-sm" oninput="cropSyncFromInputs()"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Height (px)</label><input type="number" id="cropH" placeholder="full" class="smpl-input text-sm" oninput="cropSyncFromInputs()"></div>
 </div>
 <button class="smpl-btn" onclick="imgCrop()">Crop &amp; Download</button>
 <div id="cropImgMsg" class="text-xs mt-3" style="display:none"></div>`},
@@ -4138,6 +4517,22 @@ render:()=>`
 <div id="regexOutput" class="smpl-textarea mb-3" style="min-height:80px;white-space:pre-wrap;overflow:auto"></div>
 <div id="regexMatches" class="text-xs opacity-60"></div>`},
 
+{id:'font.pair',name:'Font Pairing',cat:'Doc',tagline:'Suggest complementary fonts and size hierarchy',desc:'Browse curated font pairings for design and web projects. Each pairing includes a full size hierarchy from Display down to Caption. Click any pairing to see a live type scale preview, then copy the Google Fonts @import URL.',
+render:()=>`
+<div class="mb-4">
+  <label class="text-xs opacity-50 block mb-2">Filter by type</label>
+  <select id="fpFilter" class="smpl-select" style="max-width:240px" onchange="fontPairRenderCards()">
+    <option value="ALL">All pairings</option>
+    <option value="Serif">Serif + Sans</option>
+    <option value="Sans">Sans + Sans</option>
+    <option value="Display">Display</option>
+    <option value="Slab">Slab + Sans</option>
+  </select>
+</div>
+<div id="fpGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1px;background:#F3F4F6;margin-bottom:24px" class="dark:bg-[#262626]"></div>
+<div id="fpPreview" style="display:none"></div>
+<div id="fpMsg" class="text-xs mt-3" style="display:none"></div>`},
+
 {id:'redact.txt',name:'Redact Text',cat:'Doc',tagline:'Auto-blackout emails, phones, and PII from text',desc:'Detect and redact personally identifiable information using regex patterns. Choose which types to remove.',
 render:()=>`
 <textarea id="redactInput" class="smpl-textarea mb-4" placeholder="Paste text containing sensitive information…"></textarea>
@@ -4218,15 +4613,47 @@ render:()=>`
 <canvas id="avatarCanvas" style="display:none;image-rendering:pixelated;max-width:100%;border:1px solid #F3F4F6" class="dark:border-[#262626]"></canvas>`},
 
 // ── Audio Edit Tools ──────────────────────────────────────
-{id:'trim.audio',name:'Trim Audio',cat:'Audio',tagline:'Cut audio to a specific start and end time',desc:'Load an audio file, set start and end times in seconds, and download the trimmed segment as a WAV file.',
+{id:'trim.audio',name:'Trim Audio',cat:'Audio',tagline:'Cut audio with live preview and slider controls',desc:'Load an audio file, use the sliders (with +/− buttons) to set start and end points, preview the selection in real-time, then download the trimmed segment as a WAV file.',
 render:()=>`
 <label class="text-xs uppercase tracking-widest opacity-50 block mb-2">Audio File</label>
-${fileDrop('audioTrimInput','audio/*',false,'','mb-4')}
-<div class="flex gap-4 mb-6 flex-wrap">
-  <div class="flex-1 min-w-32"><label class="text-xs opacity-50 block mb-1">Start (seconds)</label><input type="number" id="audioTrimStart" value="0" min="0" step="0.1" class="smpl-input text-sm" placeholder="0"></div>
-  <div class="flex-1 min-w-32"><label class="text-xs opacity-50 block mb-1">End (seconds)</label><input type="number" id="audioTrimEnd" step="0.1" class="smpl-input text-sm" placeholder="leave blank = full"></div>
+${fileDrop('audioTrimInput','audio/*',false,'audioTrimLoad()','mb-4')}
+<audio id="audioTrimPlayer" controls style="display:none;width:100%;margin-bottom:12px"></audio>
+<div id="audioTrimDur" class="text-xs opacity-50 mb-4"></div>
+<div class="space-y-5 mb-4">
+  <div>
+    <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+      <label class="text-xs opacity-50">Start</label>
+      <div class="flex items-center gap-1 flex-wrap">
+        <button class="smpl-btn-outline" onclick="audioTrimAdj('start',-1)" style="padding:3px 8px;font-size:10px">−1s</button>
+        <button class="smpl-btn-outline" onclick="audioTrimAdj('start',-0.1)" style="padding:3px 8px;font-size:10px">−0.1</button>
+        <input type="number" id="audioTrimStart" value="0" min="0" step="0.001" class="smpl-input text-sm" style="max-width:90px;text-align:right" oninput="audioTrimSyncSlider('start')">
+        <span class="text-xs opacity-40">s</span>
+        <button class="smpl-btn-outline" onclick="audioTrimAdj('start',0.1)" style="padding:3px 8px;font-size:10px">+0.1</button>
+        <button class="smpl-btn-outline" onclick="audioTrimAdj('start',1)" style="padding:3px 8px;font-size:10px">+1s</button>
+      </div>
+    </div>
+    <input type="range" id="audioTrimStartSlider" min="0" max="100" step="0.001" value="0" class="w-full" oninput="audioTrimSyncNum('start')">
+  </div>
+  <div>
+    <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+      <label class="text-xs opacity-50">End</label>
+      <div class="flex items-center gap-1 flex-wrap">
+        <button class="smpl-btn-outline" onclick="audioTrimAdj('end',-1)" style="padding:3px 8px;font-size:10px">−1s</button>
+        <button class="smpl-btn-outline" onclick="audioTrimAdj('end',-0.1)" style="padding:3px 8px;font-size:10px">−0.1</button>
+        <input type="number" id="audioTrimEnd" step="0.001" class="smpl-input text-sm" style="max-width:90px;text-align:right" oninput="audioTrimSyncSlider('end')">
+        <span class="text-xs opacity-40">s</span>
+        <button class="smpl-btn-outline" onclick="audioTrimAdj('end',0.1)" style="padding:3px 8px;font-size:10px">+0.1</button>
+        <button class="smpl-btn-outline" onclick="audioTrimAdj('end',1)" style="padding:3px 8px;font-size:10px">+1s</button>
+      </div>
+    </div>
+    <input type="range" id="audioTrimEndSlider" min="0" max="100" step="0.001" value="100" class="w-full" oninput="audioTrimSyncNum('end')">
+  </div>
 </div>
-<button class="smpl-btn" onclick="audioTrim()">Trim &amp; Download</button>
+<div id="audioTrimSelection" class="text-xs opacity-60 mb-4 mono"></div>
+<div class="flex gap-3 flex-wrap">
+  <button class="smpl-btn" onclick="audioTrimPreview()">▶ Preview Selection</button>
+  <button class="smpl-btn-outline" onclick="audioTrim()">Trim &amp; Download</button>
+</div>
 <div id="audioTrimMsg" class="text-xs mt-3" style="display:none"></div>`},
 
 {id:'merge.audio',name:'Merge Audio',cat:'Audio',tagline:'Concatenate two audio files into one',desc:'Upload two audio files and merge them sequentially into a single WAV file.',
@@ -4394,6 +4821,11 @@ function openTool(id) {
   if (tool.id === 'unix.time') setTimeout(startEpochClock, 50);
   if (tool.id === 'pomo.timer') { pomoSecs=0; pomoRunning=false; setTimeout(updatePomoDisplay, 50); }
   if (tool.id === 'unit.conv') setTimeout(unitCatChange, 50);
+  if (tool.id === 'font.pair') setTimeout(fontPairRenderCards, 50);
+  // Reset crop state when opening crop tool
+  if (tool.id === 'crop.img') { cropImg = null; cropCanvas = null; cropCtx = null; cropRect = {x:0,y:0,w:0,h:0}; cropDrag = null; }
+  // Reset audio trim state when opening trim tool
+  if (tool.id === 'trim.audio') { audioTrimDuration = 0; }
 }
 
 // ============================================================
