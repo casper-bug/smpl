@@ -1052,7 +1052,7 @@ function orgDrop(e) {
 }
 function orgRotate(vi, deg) {
   const active = orgPages.filter(p=>!p.deleted);
-  if (active[vi]) { active[vi].rot = (active[vi].rot + deg) % 360; renderOrgList(); }
+  if (active[vi]) { active[vi].rot = ((active[vi].rot + deg) % 360 + 360) % 360; renderOrgList(); }
 }
 function orgDel(vi) {
   const active = orgPages.filter(p=>!p.deleted);
@@ -2324,7 +2324,8 @@ async function startAudioRec() {
     const stream = await navigator.mediaDevices.getUserMedia({audio:true});
     audioChunks = [];
     const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/ogg'].find(t=>MediaRecorder.isTypeSupported(t)) || '';
-    audioRecorder = new MediaRecorder(stream, mimeType ? {mimeType} : {});
+    if (!mimeType) { showMsg('audioCompat','No supported audio recording format found in this browser.',true); stream.getTracks().forEach(t=>t.stop()); return; }
+    audioRecorder = new MediaRecorder(stream, {mimeType});
     audioRecorder.ondataavailable = e => audioChunks.push(e.data);
     audioRecorder.onstop = () => {
       const blob = new Blob(audioChunks, {type: audioRecorder.mimeType || 'audio/webm'});
@@ -2674,7 +2675,7 @@ function encodeWav(audioBuffer) {
   const dataSize = numSamples * bitsPerSample / 8;
   const buf = new ArrayBuffer(44 + dataSize);
   const view = new DataView(buf);
-  const ws = (off, str) => { for(let i=0;i<str.length;i++) view.setUint8(off+i, str.charCodeAt(i)); };
+  const ws = (offset, string) => { for(let i=0;i<string.length;i++) view.setUint8(offset+i, string.charCodeAt(i)); };
   const wi32 = (off, v) => view.setUint32(off, v, true);
   const wi16 = (off, v) => view.setUint16(off, v, true);
   ws(0,'RIFF'); wi32(4, 36+dataSize); ws(8,'WAVE');
@@ -2685,6 +2686,7 @@ function encodeWav(audioBuffer) {
   for(let i=0;i<audioBuffer.length;i++){
     for(let ch=0;ch<numCh;ch++){
       const s = Math.max(-1, Math.min(1, audioBuffer.getChannelData(ch)[i]));
+      // 0x8000 = 32768 (min signed 16-bit), 0x7FFF = 32767 (max signed 16-bit)
       view.setInt16(offset, s<0 ? s*0x8000 : s*0x7FFF, true);
       offset += 2;
     }
@@ -3108,7 +3110,7 @@ render:()=>`
   <div><label class="text-xs opacity-50 block mb-1">X (pts from left)</label><input type="number" id="signX" value="50" class="smpl-input text-sm"></div>
   <div><label class="text-xs opacity-50 block mb-1">Y (pts from top)</label><input type="number" id="signY" value="50" class="smpl-input text-sm"></div>
   <div><label class="text-xs opacity-50 block mb-1">Width (pts)</label><input type="number" id="signW" value="150" class="smpl-input text-sm"></div>
-  <div><label class="text-xs opacity-50 block mb-1">Height (pts)</label><input type="number" id="signH" value="60" class="smpl-input text-sm"></div>
+  <div><label class="text-xs opacity-50 block mb-1">Height (pts)</label><input type="number" id="signH" value="60" min="1" max="842" class="smpl-input text-sm"></div>
 </div>
 <button class="smpl-btn" onclick="pdfSign()">Add Signature</button>
 <div id="signMsg" class="text-xs mt-3" style="display:none"></div>`},
@@ -4328,7 +4330,7 @@ function renderGrid(tools) {
   grid.style.display = '';
   noRes.style.display = 'none';
   tools.forEach(tool => {
-    if (tool.hidden) return;
+    if (tool.hidden) return; // hidden:true marks deprecated/replaced tools kept for URL compatibility
     const card = document.createElement('div');
     card.className = 'smpl-card';
     card.onclick = () => openTool(tool.id);
